@@ -1,0 +1,836 @@
+// SPDX-FileCopyrightText: 2026 RiDDiX / Maximilian Hammerschmid
+// SPDX-License-Identifier: FSL-1.1-ALv2
+
+// Core light theme tokens used by the dashboard and agent detail surfaces.
+:root
+  --rmm-bg: #f5f7fa
+  --rmm-surface: #ffffff
+  --rmm-surface-2: #f8fafc
+  --rmm-surface-3: #f1f5f9
+  --rmm-border: #e2e8f0
+  --rmm-border-strong: #cbd5e1
+  --rmm-input-border: #7c8799
+  --rmm-text: #0f172a
+  --rmm-text-muted: #475569
+  --rmm-text-subtle: #64748b
+  --rmm-accent: var(--q-primary)
+  --rmm-accent-soft: rgba(37, 99, 235, 0.08)
+  --rmm-accent-text: #1d4ed8
+  --rmm-focus: var(--rmm-accent)
+  --rmm-status-positive: #15803d
+  --rmm-status-warning: #9a6006
+  --rmm-status-info: #0e7490
+  --rmm-status-negative: #b91c1c
+  --rmm-nav-bg: #102139
+  --rmm-nav-hover: #1b3353
+  --rmm-nav-text: #d7e2f2
+  --rmm-nav-active-bg: #253f63
+  --rmm-nav-active-text: #ffffff
+  --rmm-nav-text-muted: #a8bdd8
+  --rmm-nav-accent: #60a5fa
+  --rmm-nav-border: #1f3553
+  --rmm-radius: 10px
+  --rmm-radius-sm: 6px
+  --rmm-radius-lg: 12px
+  --rmm-hero-bg: linear-gradient(135deg, color-mix(in srgb, var(--rmm-accent) 10%, var(--rmm-surface)), var(--rmm-surface) 65%)
+  --rmm-tile-icon-bg: #dbeafe
+  --rmm-tile-icon-text: #1d4ed8
+  --rmm-dot-warning: #d97706
+  --rmm-bar-track: #e2e8f0
+  --rmm-nav-badge-bg: #dc2626
+  --rmm-nav-badge-text: #ffffff
+  --rmm-shadow: 0 1px 2px rgba(15, 23, 42, 0.05)
+  --rmm-shadow-lg: 0 12px 32px -8px rgba(15, 23, 42, 0.22), 0 2px 6px rgba(15, 23, 42, 0.06)
+  --rmm-tooltip-bg: #0f172a
+  --rmm-tooltip-text: #f8fafc
+  --rmm-on-bright: #0f172a
+  --rmm-mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace
+  --rmm-fs-xs: 0.75rem
+  --rmm-fs-sm: 0.76rem
+  --rmm-fs-md: 0.875rem
+  --rmm-fs-lg: 1rem
+  --rmm-fs-xl: 1.25rem
+  color-scheme: light
+
+// Core dark theme tokens follow Quasar's body dark-mode class.
+body.body--dark
+  --rmm-bg: #0b1120
+  --rmm-surface: #111827
+  --rmm-surface-2: #0f172a
+  --rmm-surface-3: #1e293b
+  --rmm-border: #1f2937
+  --rmm-border-strong: #334155
+  --rmm-input-border: #64748b
+  --rmm-text: #e5e7eb
+  --rmm-text-muted: #9ca3af
+  --rmm-text-subtle: #8b95a5
+  --rmm-accent: #3b82f6
+  --rmm-accent-soft: rgba(59, 130, 246, 0.14)
+  --rmm-accent-text: #93c5fd
+  --rmm-focus: var(--rmm-accent)
+  --rmm-status-positive: #4ade80
+  --rmm-status-warning: #facc15
+  --rmm-status-info: #22d3ee
+  --rmm-status-negative: #f87171
+  --rmm-nav-bg: #0b1120
+  --rmm-nav-hover: #1e293b
+  --rmm-nav-text: #cbd5e1
+  --rmm-nav-active-bg: var(--rmm-accent-soft)
+  --rmm-nav-active-text: var(--rmm-accent-text)
+  --rmm-nav-text-muted: #94a3b8
+  --rmm-nav-accent: var(--rmm-accent)
+  --rmm-nav-border: #1f2937
+  --rmm-hero-bg: linear-gradient(135deg, color-mix(in srgb, var(--rmm-accent) 12%, var(--rmm-surface)), var(--rmm-surface) 65%)
+  --rmm-tile-icon-bg: rgba(59, 130, 246, 0.18)
+  --rmm-tile-icon-text: #93c5fd
+  --rmm-dot-warning: #fbbf24
+  --rmm-bar-track: #1f2937
+  --rmm-nav-badge-bg: #dc2626
+  --rmm-nav-badge-text: #ffffff
+  --rmm-shadow: 0 1px 2px rgba(0, 0, 0, 0.35)
+  --rmm-shadow-lg: 0 12px 32px -8px rgba(0, 0, 0, 0.55), 0 2px 6px rgba(0, 0, 0, 0.35)
+  --rmm-tooltip-bg: #1e293b
+  --rmm-tooltip-text: #f1f5f9
+  color-scheme: dark
+
+.text-positive
+  color: var(--rmm-status-positive) !important
+
+.text-negative
+  color: var(--rmm-status-negative) !important
+
+.text-warning
+  color: var(--rmm-status-warning) !important
+
+.text-info
+  color: var(--rmm-status-info) !important
+
+body.body--dark .text-primary
+  color: var(--rmm-accent-text) !important
+
+body.body--dark .organization-active
+  color: var(--rmm-accent-text) !important
+
+// App-wide typography and page colors provide the common visual baseline.
+body
+  color: var(--rmm-text)
+  background: var(--rmm-bg)
+  font-family: Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6
+  font-weight: 600
+  letter-spacing: -0.01em
+
+// script output, notes and logs wrap instead of scrolling sideways
+pre
+  font-family: var(--rmm-mono)
+  white-space: pre-wrap
+
+// Quasar widget defaults. old screens and dialogs inherit them.
+.q-btn
+  border-radius: var(--rmm-radius-sm)
+  font-size: var(--rmm-fs-md)
+  font-weight: 500
+  letter-spacing: normal
+  text-transform: none
+  transition: background-color 0.15s ease-out, color 0.15s ease-out
+
+.q-btn.q-btn--round
+  border-radius: 50%
+
+body.desktop .q-btn--flat.q-hoverable:hover > .q-focus-helper
+  background: var(--rmm-text)
+  opacity: 0.06
+
+.q-field
+  color: var(--rmm-text)
+
+.q-field--outlined .q-field__control,
+.q-field--filled .q-field__control
+  border-radius: var(--rmm-radius-sm)
+
+.q-field--outlined .q-field__control::before
+  border-color: var(--rmm-input-border)
+
+.q-field--outlined.q-field--highlighted:not(.q-field--error) .q-field__control::after
+  border-width: 2px
+  border-color: var(--rmm-accent)
+
+.q-field--standard .q-field__control::before
+  border-color: var(--rmm-input-border)
+
+.q-field--filled .q-field__control
+  background: var(--rmm-surface-2)
+
+.q-field:not(.q-field--error):not(.q-field--highlighted) .q-field__label,
+.q-field:not(.q-field--error) .q-field__marginal
+  color: var(--rmm-text-muted)
+
+// focused label uses --q-primary, under 4.5:1 on the dark surface
+body.body--dark .q-field--highlighted:not(.q-field--error) .q-field__label
+  color: var(--rmm-accent-text)
+
+.q-item__label--caption
+  color: var(--rmm-text-subtle)
+
+.q-field .q-field__bottom
+  color: var(--rmm-text-muted)
+
+// a hint or error filled the whole 20px under its field and touched the next
+// field's border in dialog forms. Maximized editors keep the framework's
+// height, they are sized to the pixel.
+.q-dialog__inner--minimized .q-field--with-bottom
+  padding-bottom: 4px
+
+// the framework inherits the text colour; on dark an example such as a
+// command placeholder read like a typed value
+.q-field__native::placeholder,
+.q-field__input::placeholder
+  color: var(--rmm-text-muted)
+  opacity: 1
+
+.q-field--error .q-field__bottom
+  color: var(--rmm-status-negative) !important
+
+.q-field__focusable-action
+  color: var(--rmm-text-subtle)
+  opacity: 1
+
+// two-factor code fields: digits, label and hint centred. The left padding
+// matches the letter spacing that trails the last digit.
+.rmm-otp
+  .q-field__native
+    padding-left: 0.3em
+    text-align: center
+    font-family: var(--rmm-mono)
+    font-size: 1.125rem
+    font-variant-numeric: tabular-nums
+    letter-spacing: 0.3em
+  .q-field__label
+    right: 0
+    text-align: center
+    transform-origin: center top
+  .q-field__bottom
+    justify-content: center
+    text-align: center
+  // the error icon would narrow the input and pull digits and label left;
+  // the red outline and the message below already show the error
+  &.q-field--error .q-field__append
+    display: none
+
+.q-card
+  color: var(--rmm-text)
+  border: 1px solid var(--rmm-border)
+  border-radius: var(--rmm-radius)
+  background: var(--rmm-surface)
+  box-shadow: var(--rmm-shadow)
+
+.q-card--flat
+  box-shadow: none
+
+.q-card--flat:not(.q-card--bordered)
+  border: 0
+
+.q-menu .q-card
+  border: 0
+  box-shadow: none
+
+.q-dialog__inner > .q-card
+  border-radius: 10px
+  box-shadow: var(--rmm-shadow-lg)
+
+.q-card > .q-bar:first-child
+  min-height: 48px
+  padding: 8px 12px
+  color: var(--rmm-text)
+  border-bottom: 1px solid var(--rmm-border)
+  background: var(--rmm-surface)
+  font-size: var(--rmm-fs-lg)
+  font-weight: 600
+
+.q-card > .q-bar:first-child .q-btn
+  color: var(--rmm-text-muted)
+
+.q-dialog__inner--maximized > .q-card > .q-bar:first-child
+  min-height: 32px
+  padding-top: 0
+  padding-bottom: 0
+
+.q-card__actions
+  padding: 12px 16px
+  border-top: 1px solid var(--rmm-border)
+
+// $q.dialog() confirm/prompt: dark mode paints them amber and the title
+// is bigger than our dialogs. Cancel stays neutral. Other dialogs reuse
+// q-dialog-plugin, so the Cancel rule only hits Quasar's own card
+// (title and message as direct children).
+.q-dialog-plugin .q-dialog__title
+  font-size: var(--rmm-fs-lg)
+  font-weight: 600
+  letter-spacing: -0.01em
+
+.q-dialog-plugin--dark .text-amber
+  color: var(--rmm-accent-text) !important
+
+.q-dialog-plugin--dark .bg-amber
+  background: var(--q-primary) !important
+
+.q-dialog-plugin:has(> .q-dialog__title, > .q-dialog__message) .q-card__actions .q-btn--flat:not(:last-child):is(.text-primary, .text-amber)
+  color: var(--rmm-text) !important
+
+// Maximized editors size off screen height and Quasar's chrome. A card
+// border or a taller action bar overflows. 1px border + 7px top = Quasar's 8px.
+.q-dialog__inner--maximized > .q-card
+  border: 0
+
+.q-dialog__inner--maximized > .q-card > .q-card__actions
+  padding: 7px 8px 8px
+
+.q-menu
+  color: var(--rmm-text)
+  border: 1px solid var(--rmm-border)
+  border-radius: var(--rmm-radius)
+  background: var(--rmm-surface)
+  box-shadow: var(--rmm-shadow-lg)
+
+.q-menu .q-item:not(.q-item--dense)
+  min-height: 36px
+  border-radius: var(--rmm-radius-sm)
+
+.q-menu .q-item:hover
+  background: var(--rmm-surface-3)
+
+.q-menu .q-item.q-router-link--active,
+.q-menu .q-item--active
+  color: var(--rmm-accent-text)
+  background: var(--rmm-accent-soft)
+
+.q-menu .q-item__label--caption
+  color: var(--rmm-text-muted)
+
+.q-menu .q-item__section--avatar .q-icon
+  color: var(--rmm-text-subtle)
+
+// dense menu, two lines: keep the caption off the next title
+.q-menu :is(.q-list--dense .q-item, .q-item--dense):has(.q-item__label--caption)
+  padding-top: 6px
+  padding-bottom: 6px
+
+.q-tooltip
+  max-width: 320px
+  padding: 6px 8px
+  color: var(--rmm-tooltip-text)
+  border: 1px solid transparent
+  border-radius: var(--rmm-radius-sm)
+  background: var(--rmm-tooltip-bg)
+  box-shadow: var(--rmm-shadow-lg)
+  font-size: var(--rmm-fs-xs)
+  line-height: 1.4
+
+body.body--dark .q-tooltip
+  border-color: var(--rmm-border-strong)
+
+.q-tab
+  font-weight: 500
+  letter-spacing: normal
+  text-transform: none
+
+.q-tab:not(.q-tab--active)
+  color: var(--rmm-text-muted)
+
+.q-tab--active
+  color: var(--rmm-accent-text)
+
+.q-tab__indicator
+  color: var(--rmm-accent)
+
+.q-tabs--horizontal .q-tab__indicator
+  height: 2px
+
+// Quasar's inactive grey and the dark-mode primary miss 4.5:1
+.q-stepper__tab
+  color: var(--rmm-text-muted)
+
+.q-stepper__tab--active,
+.q-stepper__tab--done
+  color: var(--rmm-accent-text)
+
+.q-stepper__tab--error
+  color: var(--rmm-status-negative)
+
+.q-table__container
+  color: var(--rmm-text)
+  border-color: var(--rmm-border)
+  background: var(--rmm-surface)
+
+.q-table__card
+  box-shadow: none
+
+.q-table__card:not(.q-table--flat)
+  border: 1px solid var(--rmm-border)
+  border-radius: var(--rmm-radius)
+
+.q-table thead th
+  color: var(--rmm-text-muted)
+  background: var(--rmm-surface-2)
+  font-size: var(--rmm-fs-xs)
+  font-weight: 600
+  letter-spacing: normal
+  text-transform: none
+
+.q-table tbody td
+  border-color: var(--rmm-border)
+
+.q-table tbody tr:hover td
+  background: var(--rmm-surface-3)
+
+.q-table tbody tr.highlight td,
+.q-table tbody tr.selected td
+  background: var(--rmm-accent-soft)
+
+.q-table tbody tr.selected td:first-child
+  box-shadow: inset 3px 0 var(--rmm-accent)
+
+.q-badge,
+.q-chip:not(.q-chip--square)
+  border-radius: 999px
+
+.q-badge,
+.q-chip
+  font-size: var(--rmm-fs-xs)
+
+// clickable dense chips are filters and toggles; 1.5em of the xs size is an
+// 18px target, keep them at 24px
+.q-chip--clickable.q-chip--dense
+  height: 24px
+  padding: 0 0.6em
+
+.q-badge
+  padding: 2px 8px
+  font-weight: 500
+
+.q-badge + .q-badge
+  margin-left: 4px
+
+:is(.q-badge:not(.alerts-count-badge), .q-chip).bg-primary
+  color: var(--rmm-accent-text) !important
+  background: var(--rmm-accent-soft) !important
+
+:is(.q-badge:not(.alerts-count-badge), .q-chip).bg-positive
+  color: var(--rmm-status-positive) !important
+  background: color-mix(in srgb, var(--q-positive) 8%, var(--rmm-surface)) !important
+
+:is(.q-badge:not(.alerts-count-badge), .q-chip).bg-warning
+  color: var(--rmm-status-warning) !important
+  background: color-mix(in srgb, var(--q-warning) 8%, var(--rmm-surface)) !important
+
+:is(.q-badge:not(.alerts-count-badge), .q-chip).bg-info
+  color: var(--rmm-status-info) !important
+  background: color-mix(in srgb, var(--q-info) 8%, var(--rmm-surface)) !important
+
+:is(.q-badge:not(.alerts-count-badge), .q-chip).bg-negative
+  color: var(--rmm-status-negative) !important
+  background: color-mix(in srgb, var(--q-negative) 8%, var(--rmm-surface)) !important
+
+:is(.q-avatar).bg-positive,
+:is(.q-avatar).bg-warning,
+:is(.q-avatar).bg-info
+  color: var(--rmm-on-bright) !important
+
+.q-banner
+  border: 1px solid var(--rmm-border)
+  border-radius: var(--rmm-radius)
+
+.q-banner.bg-info
+  color: var(--rmm-status-info) !important
+  background: color-mix(in srgb, var(--q-info) 8%, var(--rmm-surface)) !important
+
+.q-banner.bg-warning,
+.rmm-banner-warning
+  color: var(--rmm-status-warning) !important
+  background: color-mix(in srgb, var(--q-warning) 8%, var(--rmm-surface)) !important
+
+.q-banner.bg-negative,
+.q-banner.bg-red
+  color: var(--rmm-status-negative) !important
+  background: color-mix(in srgb, var(--q-negative) 8%, var(--rmm-surface)) !important
+
+.q-notification
+  color: var(--rmm-text) !important
+  border: 1px solid var(--rmm-border)
+  border-left: 4px solid var(--rmm-accent)
+  border-radius: var(--rmm-radius)
+  background: var(--rmm-surface) !important
+  box-shadow: var(--rmm-shadow-lg)
+
+.q-notification.bg-positive
+  border-left-color: var(--q-positive)
+
+.q-notification.bg-warning
+  border-left-color: var(--q-warning)
+
+.q-notification.bg-negative
+  border-left-color: var(--q-negative)
+
+.q-notification.bg-info
+  border-left-color: var(--q-info)
+
+.q-notification .q-btn
+  color: var(--rmm-text-muted) !important
+
+.q-separator
+  background: var(--rmm-border)
+
+// scrollbar-color is read from the root, not body. dark tokens sit on
+// body, so the dark border-strong goes on html.
+html,
+body
+  scrollbar-color: var(--rmm-border-strong) transparent
+  scrollbar-width: thin
+
+html:has(> body.body--dark)
+  scrollbar-color: #334155 transparent
+
+*::-webkit-scrollbar
+  width: 10px
+  height: 10px
+
+*::-webkit-scrollbar-thumb
+  border: 2px solid transparent
+  border-radius: 999px
+  background: var(--rmm-border-strong)
+  background-clip: padding-box
+
+.rmm-auth-page
+  min-height: 100vh
+  padding: 24px
+  background: radial-gradient(circle at 70% 20%, var(--rmm-accent-soft), transparent 36%), var(--rmm-bg)
+
+.rmm-auth-card
+  width: min(440px, 92vw)
+
+.rmm-auth-logo
+  max-width: min(220px, 100%)
+  max-height: 64px
+  object-fit: contain
+
+.rmm-auth-product
+  font-size: 1.25rem
+  font-weight: 600
+  letter-spacing: -0.01em
+
+// Visible keyboard focus ring on every interactive control; mouse clicks stay ring-free.
+:is(.q-btn, .q-item, .q-tab, .q-checkbox, .q-radio, .q-toggle, .q-chip, .q-tree__node-header, a, [tabindex]):focus-visible
+  // !important because the framework's .no-outline (buttons, toggles) sets outline: 0 !important
+  outline: 2px solid var(--rmm-focus) !important
+  outline-offset: 2px
+
+// outlined / filled / standard fields draw their own focus. no ring there.
+:is(.q-field--outlined, .q-field--filled, .q-field--standard) :is(.q-field__native, .q-field__input, .q-field__control):focus-visible
+  outline: none !important
+
+.app-nav :focus-visible
+  outline-color: var(--rmm-nav-text) !important
+
+// Respect the OS reduced-motion setting for slide transitions and animated gauges.
+@media (prefers-reduced-motion: reduce)
+  *,
+  *::before,
+  *::after
+    animation-duration: 0.01ms !important
+    transition-duration: 0.01ms !important
+
+// Standard card shell shared by dashboard and agent tabs.
+.rmm-card
+  overflow: hidden
+  border: 1px solid var(--rmm-border) !important
+  border-radius: var(--rmm-radius) !important
+  background: var(--rmm-surface) !important
+  box-shadow: var(--rmm-shadow)
+
+// Standard card heading aligns titles and controls.
+.rmm-card__header
+  display: flex
+  min-height: 42px
+  align-items: center
+  gap: 8px
+  padding: 8px 12px
+  border-bottom: 1px solid var(--rmm-border)
+  background: var(--rmm-surface)
+
+// Standard card title uses compact commercial-dashboard typography and
+// ellipsizes instead of overlapping a header badge in a narrow pane.
+.rmm-card__title
+  overflow: hidden
+  min-width: 0
+  // also used on h3, whose type scale would add 14px margins and a 50px line
+  margin: 0
+  line-height: 1.4
+  font-size: var(--rmm-fs-md)
+  font-weight: 600
+  letter-spacing: 0.01em
+  text-overflow: ellipsis
+  white-space: nowrap
+
+// A header badge keeps its size so the title above is what shrinks.
+.rmm-card__header .q-badge
+  flex-shrink: 0
+
+// Standard card body supplies consistent content spacing.
+.rmm-card__body
+  padding: 12px
+
+// Compact field labels establish hierarchy without visual weight.
+.rmm-label
+  color: var(--rmm-text-muted)
+  font-size: var(--rmm-fs-xs)
+  font-weight: 600
+  letter-spacing: normal
+  line-height: 1.4
+
+// Key/value grids keep device facts aligned and scannable.
+.rmm-kv
+  display: grid
+  grid-template-columns: minmax(110px, 0.45fr) minmax(0, 1fr)
+  gap: 8px 16px
+  align-items: baseline
+
+.rmm-kv > :nth-child(odd)
+  color: var(--rmm-text-muted)
+  font-size: var(--rmm-fs-sm)
+
+// Status pills pair a semantic dot with compact text.
+.rmm-pill
+  --rmm-pill-color: var(--rmm-text-muted)
+  display: inline-flex
+  min-height: 22px
+  align-items: center
+  gap: 6px
+  padding: 2px 8px
+  border: 1px solid color-mix(in srgb, var(--rmm-pill-color) 28%, transparent)
+  border-radius: 999px
+  color: var(--rmm-pill-text, var(--rmm-pill-color))
+  background: color-mix(in srgb, var(--rmm-pill-color) 9%, transparent)
+  font-size: var(--rmm-fs-xs)
+  font-weight: 600
+
+.rmm-pill::before
+  width: 6px
+  height: 6px
+  border-radius: 50%
+  background: var(--rmm-pill-color)
+  content: ""
+
+// The hue stays on dot, border and tint; the text takes the status token
+// that holds 4.5:1 in both themes.
+.rmm-pill--positive
+  --rmm-pill-color: var(--q-positive)
+  --rmm-pill-text: var(--rmm-status-positive)
+
+.rmm-pill--negative
+  --rmm-pill-color: var(--q-negative)
+  --rmm-pill-text: var(--rmm-status-negative)
+
+.rmm-pill--warning
+  --rmm-pill-color: var(--q-warning)
+  --rmm-pill-text: var(--rmm-status-warning)
+
+.rmm-pill--info
+  --rmm-pill-color: var(--q-info)
+  --rmm-pill-text: var(--rmm-status-info)
+
+.rmm-pill--neutral
+  --rmm-pill-color: var(--rmm-text-muted)
+
+// Table toolbars group filters, modes, search, and counts.
+.rmm-toolbar
+  display: flex
+  min-height: 46px
+  align-items: center
+  gap: 8px
+  padding: 6px 10px
+  border-bottom: 1px solid var(--rmm-border)
+  background: var(--rmm-surface)
+
+// flat toolbar buttons with no colour class: mute the icon
+.rmm-toolbar .q-btn--flat:not([class*="text-"]) .q-icon.on-left
+  color: var(--rmm-text-subtle)
+
+// Quasar table treatment keeps dense rows legible and headers fixed.
+.rmm-table
+  color: var(--rmm-text)
+  background: var(--rmm-surface)
+
+// Tables that carry a .rmm-toolbar in their top slot supply their own padding.
+.rmm-table .q-table__top
+  padding: 0
+
+// skip the progress row. Quasar gives it height 0
+.rmm-table thead tr:not(.q-table__progress),
+.rmm-table thead tr:not(.q-table__progress) th
+  position: sticky
+  z-index: 1
+  top: 0
+  height: 34px
+  color: var(--rmm-text-muted)
+  background: var(--rmm-surface-2) !important
+  font-size: var(--rmm-fs-xs)
+  font-weight: 600
+  letter-spacing: normal
+
+// sortable headers show their arrow before the first click, faintly
+.rmm-table thead th.sortable .q-table__sort-icon
+  opacity: 0.4
+
+.rmm-table thead th.sorted .q-table__sort-icon
+  opacity: 1
+
+.rmm-table tbody td
+  height: 34px
+  border-color: var(--rmm-border)
+  font-size: var(--rmm-fs-sm)
+
+.rmm-table tbody tr:hover td
+  background: var(--rmm-surface-3) !important
+
+.rmm-table tbody tr.highlight td
+  background: var(--rmm-accent-soft) !important
+
+.rmm-table tbody tr.highlight td:first-child
+  box-shadow: inset 3px 0 var(--rmm-accent)
+
+// Monospace text is reserved for hostnames, identifiers, and code-like values.
+.rmm-mono
+  font-family: var(--rmm-mono)
+
+// Muted text uses the theme's secondary text color.
+.rmm-muted
+  color: var(--rmm-text-muted) !important
+
+// Inline pseudo-links use the accent token, underline appears on hover.
+.rmm-link
+  color: var(--rmm-accent-text)
+  cursor: pointer
+  text-decoration: underline
+  text-decoration-color: transparent
+  transition: text-decoration-color 0.15s ease
+
+.rmm-link:hover
+  text-decoration-color: currentColor
+
+// Visually hides text for assistive tech while keeping it in the layout for sighted users.
+.sr-only
+  position: absolute
+  width: 1px
+  height: 1px
+  padding: 0
+  margin: -1px
+  overflow: hidden
+  clip: rect(0, 0, 0, 0)
+  white-space: nowrap
+  border: 0
+
+// Numeric text aligns changing counts without visual jitter.
+.rmm-num
+  font-variant-numeric: tabular-nums
+
+// A table cell whose text shrinks with the column and ellipsizes instead of
+// a fixed character cut; the full value stays reachable via the tooltip the
+// caller pairs with it (checks/tasks/audit, DEV-6).
+.rmm-ellipsis-cell__text
+  display: inline-block
+  vertical-align: bottom
+  max-width: 100%
+  overflow: hidden
+  text-overflow: ellipsis
+  white-space: nowrap
+
+// The cell that holds such a text: it stops claiming its content's width,
+// so the table fits its container and the columns named with a percentage
+// headerStyle share whatever the fixed columns leave over.
+.rmm-ellipsis-td
+  max-width: 0
+  overflow: hidden
+  text-overflow: ellipsis
+  white-space: nowrap
+
+// A dense table's horizontal overflow stays visible instead of hiding behind
+// a platform's overlay scrollbar.
+.rmm-table .q-table__middle
+  scrollbar-width: thin
+  scrollbar-color: var(--rmm-border) transparent
+
+.rmm-table .q-table__middle::-webkit-scrollbar
+  height: 10px
+
+.rmm-table .q-table__middle::-webkit-scrollbar-track
+  background: transparent
+
+.rmm-table .q-table__middle::-webkit-scrollbar-thumb
+  border-radius: 6px
+  background-color: var(--rmm-border)
+
+// A table stretched over its dialog (class col) put the empty state at the
+// dialog's foot; it sits under the header instead.
+.q-table__middle:has(~ .q-table__bottom--nodata)
+  flex: 0 0 auto
+
+// terminal scrollbar: thin, and the thumb only tints on hover
+$xterm-thumb: rgba(255, 255, 255, 0.35)
+
+.xterm .xterm-viewport
+  scrollbar-width: thin
+  scrollbar-color: $xterm-thumb transparent
+
+  &::-webkit-scrollbar-track
+    background: transparent
+
+  &::-webkit-scrollbar-thumb
+    opacity: 0
+    border: 2px solid transparent
+    border-radius: 8px
+    background: $xterm-thumb content-box
+    transition: opacity 0.2s ease
+
+    &:hover
+      background-color: rgba(255, 255, 255, 0.6)
+
+  &::-webkit-scrollbar-button
+    display: none
+    width: 0
+    height: 0
+
+// Dialog size classes (DS-6) replace ad-hoc width/min-width inline styles on
+// q-dialog-plugin cards; max-width keeps every size usable at 1366x768. The
+// second selector outranks Quasar's 560px cap on a minimized dialog's card.
+.rmm-dialog--sm,
+.q-dialog__inner--minimized > .rmm-dialog--sm
+  width: 440px
+  max-width: 95vw
+
+.rmm-dialog--md,
+.q-dialog__inner--minimized > .rmm-dialog--md
+  width: 640px
+  max-width: 95vw
+
+.rmm-dialog--lg,
+.q-dialog__inner--minimized > .rmm-dialog--lg
+  // never narrower than --md on small screens
+  width: min(max(60vw, 640px), 95vw)
+  max-width: 95vw
+
+// Global Settings' vertical tab rail (RSP-6): labels wrap instead of
+// clipping, so "Single Sign-On (SSO)" stays readable once the splitter's
+// percentage share of the 60vw card narrows at 1024px.
+.rmm-settings-tabs .q-tab
+  min-height: 40px
+  white-space: normal
+
+// the phone section picker of the same dialog keeps touch-sized rows
+.settings-tab-menu .q-item:not(.q-item--dense)
+  min-height: 44px
