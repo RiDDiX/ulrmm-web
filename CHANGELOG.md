@@ -1,5 +1,9 @@
 # Web interface changelog
 
+## 2.03.11.2026 (2026-11-03)
+
+- Keep awake: on a Mac the dialog has a Stay awake on power switch that saves at once; the device menu and the device page show Awake on power while it is on
+
 ## 1.03.11.2026 (2026-11-03)
 
 - Licenses: Activation column with the devices that activated a stored Microsoft key, the ones that did not, and the free seats; the tooltip lists each device with product, status and channel
