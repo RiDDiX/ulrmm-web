@@ -464,7 +464,9 @@ const groups = computed(() => {
         label: "Keep awake…",
         caption: awakeLabel.value
           ? `Awake until ${awakeLabel.value}`
-          : undefined,
+          : props.agent.keep_awake_ac
+            ? "Awake on power"
+            : undefined,
         disable: freebsd || down,
       },
       gate: {

@@ -127,7 +127,7 @@
               >
             </span>
             <a
-              v-if="awakeUntil"
+              v-if="awakeUntil || summary.keep_awake_ac"
               href="#"
               role="button"
               class="rmm-pill rmm-pill--neutral"
@@ -135,10 +135,14 @@
               @keydown.space.prevent="showKeepAwake"
             >
               <q-icon name="coffee" size="14px" />
-              Awake until {{ awakeUntil }}
-              <q-tooltip
+              {{ awakeUntil ? `Awake until ${awakeUntil}` : "Awake on power" }}
+              <q-tooltip v-if="awakeUntil"
                 >Sleep is held off until then, lid closed or not — click to
                 change or turn off</q-tooltip
+              >
+              <q-tooltip v-else
+                >Never sleeps on AC power, lid closed or not. Click to
+                change</q-tooltip
               >
             </a>
             <span

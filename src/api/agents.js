@@ -160,6 +160,10 @@ export function keepAgentAwake(agent_id, minutes) {
   return agents.post(`/${agent_id}/keepawake/`, { minutes });
 }
 
+export function keepAgentAwakeOnPower(agent_id, ac) {
+  return agents.post(`/${agent_id}/keepawake/`, { ac });
+}
+
 export function wakeUpWOL(agent_id) {
   return agents.post(`/${agent_id}/wol/`);
 }

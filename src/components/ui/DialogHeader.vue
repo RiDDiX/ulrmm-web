@@ -11,7 +11,14 @@
     </div>
     <q-space />
     <slot name="actions" />
-    <q-btn dense flat icon="close" aria-label="Close" v-close-popup>
+    <q-btn
+      v-close-popup
+      dense
+      flat
+      icon="close"
+      aria-label="Close"
+      :disable="closeDisable"
+    >
       <q-tooltip>{{ closeTooltip }}</q-tooltip>
     </q-btn>
   </q-bar>
@@ -26,6 +33,7 @@ defineProps({
   subtitle: { type: String, default: "" },
   titleId: { type: String, default: undefined },
   closeTooltip: { type: String, default: "Close" },
+  closeDisable: { type: Boolean, default: false },
 });
 </script>
 
