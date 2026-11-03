@@ -1,0 +1,26 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "skipLibCheck": true
+  },
+  "include": [
+    "src/types/*.d.ts",
+    "src/store/*.d.ts",
+    "src/api/http.ts",
+    "src/api/deploy.ts",
+    "src/api/baselines.ts",
+    "src/api/security.ts",
+    "src/api/server.ts",
+    "src/utils/deploy.ts",
+    "src/utils/baselines.ts",
+    "src/utils/chunkedUpload.ts",
+    "src/components/deploy/**/*.ts",
+    "src/components/deploy/**/*.vue",
+    "src/components/baselines/**/*.ts",
+    "src/components/baselines/**/*.vue",
+    "src/components/security/**/*.ts",
+    "src/components/security/**/*.vue",
+    "src/components/update/**/*.vue",
+    "src/views/UpdateCenterView.vue"
+  ]
+}
