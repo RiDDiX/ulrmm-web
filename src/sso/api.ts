@@ -30,16 +30,20 @@ export function fetchSSOProviders(): Promise<SSOProvider[]> {
   return providers.get("/");
 }
 
-export function addSSOProvider(payload: SSOProviderCreate) {
-  return providers.post("/", payload);
+export function addSSOProvider(payload: SSOProviderCreate, totp_code: string) {
+  return providers.post("/", { ...payload, totp_code });
 }
 
-export function editSSOProvider(id: number, payload: SSOProviderUpdate) {
-  return providers.put(`/${id}/`, payload);
+export function editSSOProvider(
+  id: number,
+  payload: SSOProviderUpdate,
+  totp_code: string,
+) {
+  return providers.put(`/${id}/`, { ...payload, totp_code });
 }
 
-export function removeSSOProvider(id: number) {
-  return providers.delete(`/${id}/`);
+export function removeSSOProvider(id: number, totp_code: string) {
+  return providers.delete(`/${id}/`, { data: { totp_code } });
 }
 
 export async function fetchSSOSettings(): Promise<SSOSettings> {

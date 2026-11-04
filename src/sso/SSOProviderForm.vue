@@ -83,10 +83,10 @@
 <script setup lang="ts">
 import { reactive, ref } from "vue";
 import DialogHeader from "@/components/ui/DialogHeader.vue";
-import { useDialogPluginComponent } from "quasar";
+import { useDialogPluginComponent, useQuasar } from "quasar";
 import RmmSelect from "@/components/ui/RmmSelect.vue";
 import SecretInput from "@/components/ui/SecretInput.vue";
-import { useRoleDropdown } from "@/composables/accounts";
+import { askChangeCode, useRoleDropdown } from "@/composables/accounts";
 import { addSSOProvider, editSSOProvider } from "@/sso/api";
 import { notifySuccess } from "@/utils/notify";
 
@@ -99,6 +99,7 @@ const props = defineProps<{
 
 defineEmits([...useDialogPluginComponent.emits]);
 
+const $q = useQuasar();
 const { dialogRef, onDialogHide, onDialogOK } = useDialogPluginComponent();
 const { roleOptions } = useRoleDropdown({ onMount: true });
 
@@ -122,6 +123,10 @@ const nameRules = [
 ];
 
 async function submit() {
+  const code = await askChangeCode($q, {
+    title: props.provider ? "Save OIDC Provider" : "Add OIDC Provider",
+  });
+  if (code === null) return;
   busy.value = true;
   try {
     const fields = {
@@ -131,12 +136,16 @@ async function submit() {
       role: form.role ?? null,
     };
     if (props.provider) {
-      await editSSOProvider(props.provider.id, {
-        ...fields,
-        ...(form.secret_clear && { secret_clear: true }),
-      });
+      await editSSOProvider(
+        props.provider.id,
+        {
+          ...fields,
+          ...(form.secret_clear && { secret_clear: true }),
+        },
+        code,
+      );
     } else {
-      await addSSOProvider({ ...fields, name: form.name });
+      await addSSOProvider({ ...fields, name: form.name }, code);
     }
     notifySuccess("SSO Provider was edited!");
     onDialogOK();

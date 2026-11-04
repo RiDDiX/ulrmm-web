@@ -181,6 +181,7 @@ import MenuList from "@/components/ui/MenuList.vue";
 import RowActions from "@/components/ui/RowActions.vue";
 import SSOProviderForm from "@/sso/SSOProviderForm.vue";
 import SSOSettingsDialog from "@/sso/SSOSettings.vue";
+import { askChangeCode } from "@/composables/accounts";
 import {
   fetchSSOProviders,
   fetchSSOSettings,
@@ -298,18 +299,17 @@ function editProvider(provider: SSOProvider) {
   }).onOk(getProviders);
 }
 
-function deleteProvider(provider: SSOProvider) {
-  $q.dialog({
+async function deleteProvider(provider: SSOProvider) {
+  const code = await askChangeCode($q, {
     title: `Delete SSO Provider: ${provider.name}?`,
-    cancel: true,
     ok: { label: "Delete", color: "negative" },
-  }).onOk(() =>
-    whileLoading(async () => {
-      await removeSSOProvider(provider.id);
-      await getProviders();
-      notifySuccess(`SSO Provider: ${provider.name} was deleted!`);
-    }),
-  );
+  });
+  if (code === null) return;
+  await whileLoading(async () => {
+    await removeSSOProvider(provider.id, code);
+    await getProviders();
+    notifySuccess(`SSO Provider: ${provider.name} was deleted!`);
+  });
 }
 
 onMounted(() => getSettings().then(getProviders));

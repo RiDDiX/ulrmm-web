@@ -1,5 +1,9 @@
 # Web interface changelog
 
+## 1.04.11.2026 (2026-11-04)
+
+- SSO providers: adding, editing or deleting a provider asks for the two-factor code, like user and role changes
+
 ## 2.03.11.2026 (2026-11-03)
 
 - Keep awake: on a Mac the dialog has a Stay awake on power switch that saves at once; the device menu and the device page show Awake on power while it is on
