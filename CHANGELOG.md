@@ -1,5 +1,9 @@
 # Web interface changelog
 
+## 4.07.11.2026 (2026-11-07)
+
+- version only, follows server 4.07.11.2026
+
 ## 3.07.11.2026 (2026-11-07)
 
 - Update Center: a second update no longer shows the result of the previous run; the page waits until the new run is seen and reports a runner that never starts after 15 minutes
