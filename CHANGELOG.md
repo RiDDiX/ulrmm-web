@@ -1,5 +1,9 @@
 # Web interface changelog
 
+## 1.07.11.2026 (2026-11-07)
+
+- version follows the server release, no interface change
+
 ## 1.04.11.2026 (2026-11-04)
 
 - SSO providers: adding, editing or deleting a provider asks for the two-factor code, like user and role changes
