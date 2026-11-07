@@ -319,15 +319,14 @@ import {
   PATCH_STATE_HELP,
   countWillInstall,
   decisionLabel,
-  installBusyWarning,
+  installPrompt,
   patchStateLabel,
   patchStatePillColor,
   patchStatePillLabel,
   patchStateRank,
-  rebootConsequence,
+  rebootPrompt,
   severityRank,
   willInstall,
-  willInstallListHtml,
 } from "@/utils/patchStatus";
 import { nextScheduledInstallLabel } from "@/utils/patchSchedule";
 import { sortableHeaders as vSortableHeaders } from "@/utils/sortableHeaders";
@@ -609,29 +608,15 @@ async function decideSelected(choice) {
 }
 
 function askInstall() {
-  const count = approvedCount.value;
-  const windows = platform.value === "windows";
-  const reboot = detail.value?.effective_patch_policy?.reboot_after_install;
-  // the automatic reboot only runs on Windows by default; posix installs
-  // trigger it only with ULRMM_POSIX_PATCH_AUTOMATION on (winupdate/tasks.py)
-  const afterwards = windows
-    ? `After installation, ${rebootConsequence(reboot)}.`
-    : "";
-  const warning = installBusyWarning(rows.value, policy.value, platform.value);
-  const restarts = windows && (reboot === "required" || reboot === "always");
+  const prompt = installPrompt(rows.value, policy.value, platform.value);
   trackDialog(
     $q.dialog({
-      title:
-        count > 0
-          ? `Install ${count} approved update${plural(count)}?`
-          : "Install approved updates?",
-      message: count
-        ? `${warning}${willInstallListHtml(rows.value, policy.value)}${afterwards}`
-        : "There are no approved updates to install.",
+      title: prompt.title,
+      message: prompt.message,
       html: true,
       cancel: true,
       persistent: true,
-      ok: { label: "Install", color: restarts ? "negative" : "primary" },
+      ok: prompt.ok,
     }),
   ).onOk(install);
 }
@@ -639,19 +624,11 @@ function askInstall() {
 function askReboot() {
   const agent = detail.value;
   if (!agent) return;
-  const kind = agent.monitoring_type === "server" ? "Server" : "Workstation";
-  const user = agent.logged_username || agent.logged_in_username;
-  const signedIn = user && user !== "None" && user !== "-";
-  const message =
-    `${kind}, ${agent.client_name || agent.client} / ${agent.site_name}.` +
-    (signedIn ? ` ${user} is signed in; unsaved work will be lost.` : "");
   trackDialog(
     $q.dialog({
-      title: `Reboot ${deviceName(agent)} now?`,
-      message,
+      ...rebootPrompt(agent, deviceName(agent)),
       cancel: true,
       persistent: true,
-      ok: { label: "Reboot now", color: "negative" },
     }),
   ).onOk(async () => {
     try {

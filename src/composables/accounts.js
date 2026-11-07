@@ -52,6 +52,7 @@ export function useRoleDropdown(opts = {}) {
 
 // $q.dialog prompt for a 6-digit two-factor code. rmm-otp centres the
 // digits and the label (app.sass), like every other code field.
+/** @type {import("quasar").QDialogInputPrompt} */
 export const CODE_PROMPT = {
   model: "",
   type: "text",

@@ -71,6 +71,16 @@ function conflictOffset(e: unknown): number | null {
   return typeof received === "number" ? received : null;
 }
 
+// an offset from the server the loop can count on
+const isOffset = (n: unknown): n is number =>
+  typeof n === "number" && Number.isFinite(n);
+
+function offsetOf(reply: { received?: unknown } | null | undefined): number {
+  if (!isOffset(reply?.received))
+    throw new Error("The server did not say how much it received");
+  return reply.received;
+}
+
 const sleep = (ms: number) =>
   new Promise<void>((resolve) => setTimeout(resolve, ms));
 
@@ -121,7 +131,7 @@ export function createChunkedUpload(
           },
         );
         inFlight = 0;
-        received = typeof reply?.received === "number" ? reply.received : end;
+        received = offsetOf(reply);
         conflicts = 0;
         retry = 0;
         return;
@@ -143,7 +153,7 @@ export function createChunkedUpload(
         await wait(RETRY_DELAYS_MS[attempt] ?? 15000);
         try {
           // the part may have landed before the answer got lost
-          received = (await api.status(uploadId)).received;
+          received = offsetOf(await api.status(uploadId));
         } catch {
           // the next part gets a 409 if the server is further
         }
@@ -178,11 +188,16 @@ export function createChunkedUpload(
           set("idle");
           return false;
         }
+        if (
+          !(Number.isFinite(session.chunk_size) && session.chunk_size > 0) ||
+          !isOffset(session.received)
+        )
+          throw new Error("Upload session is invalid");
         id = session.id;
         chunkSize = Math.max(1, session.chunk_size);
         received = session.received;
       } else {
-        received = (await api.status(id)).received;
+        received = offsetOf(await api.status(id));
       }
       while (received < total && !stop) await sendPart(id);
     } catch (e) {

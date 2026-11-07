@@ -32,7 +32,7 @@ export function warrantyOf(agent: unknown): WarrantyStatus | null {
 }
 
 // whole days from today to a YYYY-MM-DD date; null when unparsable
-export function daysUntil(value: unknown, now = Date.now()): number | null {
+function daysUntil(value: unknown, now = Date.now()): number | null {
   const t = Date.parse(s(value).slice(0, 10));
   return Number.isNaN(t) ? null : Math.ceil((t - now) / 86400000);
 }

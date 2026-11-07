@@ -8,6 +8,7 @@
     :model-value="modelValue"
     @update:model-value="$emit('update:modelValue', $event as string)"
     :type="visible ? 'text' : 'password'"
+    autocomplete="new-password"
     :readonly="clear"
     :placeholder="
       stored && !clear ? 'Leave empty to keep the stored value' : ''

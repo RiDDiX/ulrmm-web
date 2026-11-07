@@ -12,16 +12,6 @@ export async function fetchPackages() {
   return data;
 }
 
-// multipart; onProgress gets 0..1
-export async function uploadPackage(payload, onProgress) {
-  const form = new FormData();
-  Object.entries(payload).forEach(([key, value]) => form.append(key, value));
-  const { data } = await axios.post(`${baseUrl}/`, form, {
-    onUploadProgress: (e) => onProgress?.(e.progress ?? 0),
-  });
-  return data;
-}
-
 export async function updatePackage(id, payload, config) {
   const { data } = await axios.put(`${baseUrl}/${id}/`, payload, config);
   return data;

@@ -315,15 +315,10 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, ref, toRef } from "vue";
-import {
-  fmtBytes,
-  fmtEta,
-  fmtRate,
-  useIsoDownloads,
-} from "@/stores/isoDownloads";
+import { computed, onBeforeUnmount, onMounted, ref, toRef } from "vue";
+import { fmtEta, fmtRate, useIsoDownloads } from "@/stores/isoDownloads";
 import NoDataPanel from "@/core/ui/NoDataPanel.vue";
-import { platformMeta } from "@/utils/format";
+import { fmtBytes, platformMeta } from "@/utils/format";
 import { notifyError } from "@/utils/notify";
 import DialogHeader from "@/components/ui/DialogHeader.vue";
 import {
@@ -411,6 +406,7 @@ function pickInstaller(i: InstallerKind) {
 
 const dl = useIsoDownloads();
 onMounted(() => dl.refresh());
+onBeforeUnmount(dl.stop);
 
 function info(g: TargetGroup) {
   const seen = new Map<string, TargetDownload>();

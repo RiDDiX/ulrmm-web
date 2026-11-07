@@ -407,7 +407,7 @@ const SERVER_NEEDS_SHEBANG =
 // fixed field setups of the side panel
 const DESCRIPTION_FIELD = {
   label: "Description",
-  type: "textarea",
+  type: "textarea" as const,
   autogrow: true,
 };
 const CATEGORY_PICKER = {
@@ -437,7 +437,7 @@ const SHELL_PICKER = {
 const TIMEOUT_FIELD = {
   label: "Default timeout (seconds)",
   hint: "Run dialogs start with this limit; minimum 5",
-  type: "number",
+  type: "number" as const,
   rules: [(sec: number) => sec >= 5 || "Minimum is 5"],
 };
 
@@ -449,14 +449,23 @@ const PANES: { name: Pane; icon: string; label: string; counted?: boolean }[] =
     { name: "defaults", icon: "settings_suggest", label: "Defaults" },
   ];
 
+// a new script has no type or flags yet; the server fills them in
+type ScriptDraft = Partial<Script> &
+  Omit<Script, "script_type" | "favorite" | "hidden">;
+
 // "start blank": an empty PowerShell script with a 90 second limit
-const emptyDraft = (): Script =>
+const emptyDraft = (): ScriptDraft =>
   Object.assign(
     { name: "", script_body: "", run_as_user: false },
-    { shell: "powershell", default_timeout: 90, args: [], env_vars: [] },
+    {
+      shell: "powershell" as const,
+      default_timeout: 90,
+      args: [],
+      env_vars: [],
+    },
   );
 // the code of an existing script is fetched once the editor is up
-const draft: Script = reactive(
+const draft: ScriptDraft = reactive(
   props.script ? { ...props.script, script_body: "" } : emptyDraft(),
 );
 
@@ -645,7 +654,7 @@ watchDebounced(
 
 // the first problem that blocks a save, worded for the notification;
 // the pane that holds it is opened
-const DETAIL_CHECKS: [(s: Script) => boolean, string][] = [
+const DETAIL_CHECKS: [(s: ScriptDraft) => boolean, string][] = [
   [(s) => !s.name.trim(), "the name is required (Details)"],
   [
     (s) => !(s.default_timeout >= 5),

@@ -256,7 +256,7 @@ import ServerMaintenance from "@/components/modals/core/ServerMaintenance.vue";
 import DiscoveryManager from "./discovery/DiscoveryManager.vue";
 import ScriptManager from "@/components/scripts/ScriptManager.vue";
 import { useBrandingStore } from "@/stores/branding";
-import { dashboardScopeRoute } from "@/utils/helpers";
+import { dashboardScopeRoute, isWebUrl } from "@/utils/helpers";
 import { notifyError, notifySuccess } from "@/utils/notify";
 
 defineOptions({ name: "FileBar" });
@@ -428,10 +428,6 @@ const pushCurrentBuild = () =>
     "Every agent you have access to reinstalls the current build, also agents that already run this version.",
     () => axios.post("/agents/update/force/"),
   );
-
-// never hand a stored value straight to window.open: javascript: URIs would
-// run in this origin
-const isWebUrl = (value) => /^https?:\/\//i.test(value || "");
 
 function openSupport() {
   if (isWebUrl(supportUrl.value)) openURL(supportUrl.value);

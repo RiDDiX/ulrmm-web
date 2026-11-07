@@ -103,7 +103,7 @@ const STATUS_META: Record<FindingStatus, { label: string; tone: string }> = {
 const own = (obj: object, key: unknown): key is string =>
   typeof key === "string" && Object.prototype.hasOwnProperty.call(obj, key);
 
-export function severityOf(level: unknown): Severity {
+function severityOf(level: unknown): Severity {
   return own(SEVERITY_META, level) ? (level as Severity) : "unknown";
 }
 
@@ -122,7 +122,7 @@ export function statusMeta(status: unknown) {
     : { label: String(status || "Unknown"), tone: "neutral" };
 }
 
-export function osvUrl(id: string): string {
+function osvUrl(id: string): string {
   return `https://osv.dev/vulnerability/${encodeURIComponent(id)}`;
 }
 

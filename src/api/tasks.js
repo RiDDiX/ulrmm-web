@@ -5,10 +5,6 @@ import { endpoint } from "@/api/http";
 
 const tasks = endpoint("/tasks");
 
-export function fetchTasks(params = {}) {
-  return tasks.get("/", { params });
-}
-
 export function saveTask(payload) {
   return tasks.post("/", payload);
 }

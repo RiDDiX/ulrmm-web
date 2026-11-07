@@ -151,11 +151,12 @@ function logFailure(err: unknown) {
   console.error("login failed", status);
 }
 
-// bad credentials arrive as non_field_errors; anything else (no network and
-// the like) shows the fallback
+// bad credentials arrive as non_field_errors; no response at all means the
+// server is down; anything else shows the fallback
 function failureText(err: unknown, fallback: string): string {
   const res = (err as { response?: { status?: number; data?: unknown } })
     ?.response;
+  if (!res) return "The server cannot be reached. Try again.";
   const body = res?.data;
   // the server's own sentence (400), e.g. an unreadable two-factor key; a
   // 502 from the proxy is an HTML page

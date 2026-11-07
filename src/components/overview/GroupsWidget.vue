@@ -70,7 +70,7 @@ defineProps<{
       offline: number;
     }[];
   };
-  widget: Widget;
+  widget: Widget & { settings: { group_ids?: number[] } };
 }>();
 
 const emit = defineEmits<{ edit: [] }>();

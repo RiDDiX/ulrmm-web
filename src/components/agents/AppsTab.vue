@@ -353,13 +353,15 @@ const leftAligned = (
   col: Omit<QTableColumn<AppUpdate>, "align">,
 ): QTableColumn<AppUpdate> => ({ ...col, align: "left" });
 
-const columns = [
-  { name: "name", label: "App", field: "name", sortable: true },
-  { name: "version", label: "Installed → available", field: "installed" },
-  { name: "source", label: "Source", field: "source", sortable: true },
-  { name: "state", label: "State", field: "state", sortable: true },
-  { name: "excluded", label: "Exclude", field: "state" },
-].map(leftAligned);
+const columns = (
+  [
+    { name: "name", label: "App", field: "name", sortable: true },
+    { name: "version", label: "Installed → available", field: "installed" },
+    { name: "source", label: "Source", field: "source", sortable: true },
+    { name: "state", label: "State", field: "state", sortable: true },
+    { name: "excluded", label: "Exclude", field: "state" },
+  ] satisfies Omit<QTableColumn<AppUpdate>, "align">[]
+).map(leftAligned);
 
 function show(result: unknown) {
   data.value = result ?? {};

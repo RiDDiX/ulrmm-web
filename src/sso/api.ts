@@ -21,7 +21,7 @@ type RequestConfig = AxiosRequestConfig & { silent?: boolean };
 
 // the provider sends the browser back to this dashboard path, with ?error=
 // when the sign-in failed
-export const CALLBACK_PATH = "/account/provider/callback";
+const CALLBACK_PATH = "/account/provider/callback";
 
 // provider management
 const providers = endpoint(baseUrl);
@@ -64,7 +64,7 @@ export async function disconnectSocialAccount(provider: string, uid: string) {
   return data;
 }
 
-export function getCookie(name: string): string | null {
+function getCookie(name: string): string | null {
   for (const part of document.cookie.split(";")) {
     const [key, ...value] = part.trim().split("=");
     if (key !== name) continue;

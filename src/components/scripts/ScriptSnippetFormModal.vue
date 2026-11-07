@@ -174,7 +174,10 @@ function closeEditor() {
 }
 
 function askForDraft() {
-  const prompt = { type: "text", model: `${language.value} code that ` };
+  const prompt = {
+    type: "text" as const,
+    model: `${language.value} code that `,
+  };
   $q.dialog({ title: ASK_TITLE, prompt, persistent: true, cancel: true }).onOk(
     async (text: string) => {
       const code = await draftScript({ prompt: text });

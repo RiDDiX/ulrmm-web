@@ -120,7 +120,6 @@ import {
   addWidget,
   defaultLayout,
   errorMessage,
-  layoutError,
   type Widget,
 } from "@/utils/overview";
 
@@ -189,14 +188,8 @@ async function persist() {
       }
       continue;
     }
-    const layout = { widgets: widgets.value };
-    const invalid = layoutError(layout);
-    if (invalid) {
-      saveError.value = invalid;
-      break;
-    }
     try {
-      await saveLayout(layout);
+      await saveLayout({ widgets: widgets.value });
       saveError.value = "";
       saved.value = true;
     } catch (e) {

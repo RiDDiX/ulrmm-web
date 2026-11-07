@@ -125,13 +125,18 @@ export function nextScheduledInstallLabel(
   }
 
   const now = new Date();
-  const DAY_MS = 24 * 60 * 60 * 1000;
   // Intl throws a RangeError for a zone the browser does not know (or a
   // missing one); an informational label must not take its panel down
   try {
+    const today = zonedParts(now, timeZone);
+    const month = MONTH_LABELS.indexOf(today.month);
     for (let i = 0; i <= 35; i++) {
-      const candidate = new Date(now.getTime() + i * DAY_MS);
-      const parts = zonedParts(candidate, timeZone);
+      // step calendar days of the agent's zone: 24 h steps skip a day on a
+      // DST night; read back in UTC so a zone beyond +-12 h cannot shift it
+      const candidate = new Date(
+        Date.UTC(today.year, month, today.day + i, 12),
+      );
+      const parts = zonedParts(candidate, "UTC");
       const matches =
         policy.run_time_frequency === "daily"
           ? policy.run_time_days.includes(WEEKDAY_LABELS.indexOf(parts.weekday))

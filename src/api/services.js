@@ -10,10 +10,6 @@ export function getAgentServices(agent_id, params = {}) {
   return services.get(`/${agent_id}/`, { params });
 }
 
-export function getAgentServiceDetails(agent_id, svcname, params = {}) {
-  return services.get(service(agent_id, svcname), { params });
-}
-
 export function editAgentServiceStartType(agent_id, svcname, payload) {
   return services.put(service(agent_id, svcname), payload);
 }

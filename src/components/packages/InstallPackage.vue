@@ -55,7 +55,7 @@
             </q-banner>
             <div class="text-caption rmm-muted">
               <span class="rmm-mono">{{ pkg.filename }}</span> ·
-              {{ bytes2Human(pkg.size) }} · timeout {{ pkg.timeout }} s
+              {{ fmtBytes(pkg.size) }} · timeout {{ pkg.timeout }} s
             </div>
             <q-input
               v-if="pkg.kind === 'archive'"
@@ -155,7 +155,7 @@ import RmmSelect from "@/components/ui/RmmSelect.vue";
 import PackageInstalls from "@/components/packages/PackageInstalls.vue";
 import PackageForm from "@/components/packages/PackageForm.vue";
 import { installPackage } from "@/api/packages";
-import { bytes2Human } from "@/utils/format";
+import { fmtBytes } from "@/utils/format";
 import { RUN_AS_OPTIONS, loggedInUser } from "@/utils/packages";
 
 const props = defineProps({

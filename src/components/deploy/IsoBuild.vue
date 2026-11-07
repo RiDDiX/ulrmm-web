@@ -166,7 +166,7 @@
       >
         <q-chip dense square :label="selected.os || 'unknown'" />
         <q-chip v-if="selected.label" dense square :label="selected.label" />
-        <q-chip dense square :label="bytes2Human(selected.size)" />
+        <q-chip dense square :label="fmtBytes(selected.size)" />
         <q-chip v-if="selected.bios" dense square label="BIOS" />
         <q-chip v-if="selected.efi" dense square label="UEFI" />
       </div>
@@ -180,7 +180,7 @@
           <code>{{ plan.label || "kept from the base image" }}</code>
           · {{ plan.agent ? `agent ${plan.agent}` : "no agent build" }}
           <template v-if="plan.size_hint">
-            · about {{ bytes2Human(plan.size_hint) }}
+            · about {{ fmtBytes(plan.size_hint) }}
           </template>
         </div>
         <pre v-if="plan.files.length" class="deploy-command q-mt-sm">{{
@@ -250,7 +250,7 @@
       <div v-if="status?.state === 'done'" class="deploy-detail">
         <div class="text-weight-medium">{{ status.name }}</div>
         <div class="deploy-field__note">
-          {{ bytes2Human(status.size) }}
+          {{ fmtBytes(status.size) }}
           <template v-if="status.label"> · label {{ status.label }}</template>
         </div>
         <div v-if="status.sha256" class="deploy-line q-mt-xs">
@@ -314,13 +314,8 @@ import { ensureConsoleStepUp } from "@/composables/accounts";
 import IsoLibrary from "@/components/deploy/IsoLibrary.vue";
 import HelpTip from "@/components/ui/HelpTip.vue";
 import RmmSelect from "@/components/ui/RmmSelect.vue";
-import {
-  fmtBytes,
-  fmtEta,
-  fmtRate,
-  useIsoDownloads,
-} from "@/stores/isoDownloads";
-import { bytes2Human } from "@/utils/format";
+import { fmtEta, fmtRate, useIsoDownloads } from "@/stores/isoDownloads";
+import { fmtBytes } from "@/utils/format";
 import { copyOutput } from "@/utils/helpers";
 import { notifySuccess } from "@/utils/notify";
 import { failureText, retryAfterStepUp } from "@/utils/deploy";
@@ -355,6 +350,7 @@ const status = ref<IsoJob | null>(null);
 const failure = ref("");
 const busy = ref<"" | "build" | "download" | "discard">("");
 let timer: ReturnType<typeof setTimeout> | undefined;
+let gone = false;
 let planSeq = 0;
 
 // Windows media for Windows targets, anything else for Linux targets; built
@@ -448,7 +444,7 @@ async function startDownload() {
 
 const options = computed(() =>
   candidates.value.map((i) => ({
-    label: `${i.name} (${i.os || "unknown"}, ${bytes2Human(i.size)})`,
+    label: `${i.name} (${i.os || "unknown"}, ${fmtBytes(i.size)})`,
     value: i.id,
   })),
 );
@@ -491,7 +487,8 @@ async function poll(id: string) {
     status.value = next;
     if (next.state === "error")
       failure.value = next.error || "The build failed.";
-    else if (next.state !== "done") timer = setTimeout(() => poll(id), 1500);
+    else if (next.state !== "done" && !gone)
+      timer = setTimeout(() => poll(id), 1500);
   } catch (e) {
     if (job.value === id) failure.value = await failureText(e);
   }
@@ -580,5 +577,9 @@ watch(
   { immediate: true },
 );
 onMounted(dl.refresh);
-onBeforeUnmount(() => clearTimeout(timer));
+onBeforeUnmount(() => {
+  gone = true;
+  clearTimeout(timer);
+});
+onBeforeUnmount(dl.stop);
 </script>

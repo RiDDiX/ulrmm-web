@@ -5,6 +5,7 @@ import { useStorage } from "@vueuse/core";
 import axios from "axios";
 import { defineStore } from "pinia";
 import { exchangeSSOToken } from "@/sso/api";
+import { closeAllShared } from "@/websocket/websocket";
 
 type Credentials = { username: string; password: string };
 type LoginRequest = Credentials & { twofactor: string };
@@ -96,6 +97,7 @@ export const useAuthStore = defineStore("auth", {
         ssoLoginProvider: null,
         provider_id: null,
       });
+      closeAllShared();
     },
     // false when the account already has a key
     setupTotp(): Promise<TOTPSetupResponse | false> {

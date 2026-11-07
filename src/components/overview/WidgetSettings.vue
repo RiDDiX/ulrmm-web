@@ -139,7 +139,8 @@ const fields = computed(() => widgetMeta(props.widget.type)?.settings ?? []);
 
 // defaults, then the stored values as they are, so a value the server
 // would refuse shows up with its error
-const form = reactive<Record<string, unknown>>({
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const form = reactive<Record<string, any>>({
   ...cleanSettings(props.widget.type),
   ...Object.fromEntries(
     Object.entries(props.widget.settings || {}).filter(([key]) =>

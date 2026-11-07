@@ -4,10 +4,11 @@
 <script setup>
 import { computed, getCurrentInstance, ref } from "vue";
 import { useStore } from "vuex";
-import { openURL, useQuasar } from "quasar";
+import { useQuasar } from "quasar";
 import axios from "axios";
 import { notifySuccess, notifyWarning } from "@/utils/notify";
 import { removeClient, removeSite } from "@/api/clients";
+import { runURLAction } from "@/api/core";
 import { confirmDeleteClientOrSite } from "@/composables/clients";
 import ClientsForm from "@/components/clients/ClientsForm.vue";
 import SitesForm from "@/components/clients/SitesForm.vue";
@@ -183,12 +184,8 @@ async function loadUrlActions() {
   );
 }
 
-async function runUrlAction(node, act) {
-  const reply = await axios.patch("/core/urlaction/run/", {
-    [kindOf(node)]: node.id,
-    action: act.id,
-  });
-  openURL(reply.data);
+function runUrlAction(node, act) {
+  return runURLAction({ [kindOf(node)]: node.id, action: act.id });
 }
 
 // one list for both the row button and the right-click menu

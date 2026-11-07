@@ -40,7 +40,7 @@ interface FieldDef {
 }
 
 export const MAX_CONDITIONS = 20;
-export const MAX_IN_VALUES = 100;
+const MAX_IN_VALUES = 100;
 export const MAX_TEXT = 255;
 export const GROUP_NAME_MAX = 80;
 export const GROUP_DESCRIPTION_MAX = 500;
@@ -95,7 +95,7 @@ export const FIELD_OPTIONS = Object.entries(FIELDS).map(([value, f]) => ({
   label: f.label,
 }));
 
-export const OP_LABELS: Record<Op, string> = {
+const OP_LABELS: Record<Op, string> = {
   eq: "is",
   neq: "is not",
   contains: "contains",
@@ -243,7 +243,7 @@ function valueLabel(field: string, value: unknown, names: RuleNames) {
   return `"${value}"`;
 }
 
-export function conditionLabel(c: Condition, names: RuleNames = {}) {
+function conditionLabel(c: Condition, names: RuleNames = {}) {
   const def = FIELDS[c.field];
   if (!def) return c.field;
   const values = (Array.isArray(c.value) ? c.value : [c.value])

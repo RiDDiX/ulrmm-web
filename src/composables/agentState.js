@@ -4,6 +4,7 @@
 import { computed, ref } from "vue";
 import { fetchAgentState } from "@/api/metrics";
 import { SILENT_REQUEST_CONFIG } from "@/constants/constants";
+import { fmtBytes } from "@/utils/format";
 
 // one request feeds the system, interfaces and containers cards
 export function useAgentState() {
@@ -50,19 +51,6 @@ export function useAgentState() {
 
 export const arr = (v) => (Array.isArray(v) ? v : []);
 export const isNum = (v) => typeof v === "number" && Number.isFinite(v);
-
-const UNITS = ["B", "KB", "MB", "GB", "TB", "PB"];
-
-export function fmtBytes(v) {
-  if (!isNum(v)) return "—";
-  let n = Math.abs(v);
-  let i = 0;
-  while (n >= 1024 && i < UNITS.length - 1) {
-    n /= 1024;
-    i += 1;
-  }
-  return `${v < 0 ? "-" : ""}${i ? n.toFixed(1) : Math.round(n)} ${UNITS[i]}`;
-}
 
 export const fmtRate = (v) => (isNum(v) ? `${fmtBytes(v)}/s` : "—");
 

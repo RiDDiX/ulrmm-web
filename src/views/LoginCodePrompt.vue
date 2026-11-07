@@ -73,7 +73,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onBeforeUnmount, ref, watch } from "vue";
+import { computed, nextTick, onBeforeUnmount, ref, watch } from "vue";
 import type { QForm } from "quasar";
 import { useRouter } from "vue-router";
 import { useQRCode } from "@vueuse/integrations/useQRCode";
@@ -128,7 +128,11 @@ async function submitCode() {
   busy.value = true;
   try {
     await session.login({ ...props.creds, twofactor: code.value });
-    router.push(session.takeNext() ?? { name: "Dashboard" });
+    // a full page load: stores and the dashinfo socket start for this user.
+    // nextTick lets the session store write token and next first
+    const target = session.takeNext() ?? { name: "Dashboard" };
+    await nextTick();
+    window.location.assign(router.resolve(target).href);
     // only an accepted code closes the prompt; after a rejected one it stays
     // open, so onHidden never sees that case
     open.value = false;

@@ -65,8 +65,8 @@ type LibraryScript = Pick<
 >;
 
 export const ANY_PLATFORM = "any";
-export const OTHER_GROUP = "Other";
-export const UNCATEGORIZED = "Uncategorized";
+const OTHER_GROUP = "Other";
+const UNCATEGORIZED = "Uncategorized";
 
 export const QUICK_FILTERS: {
   value: QuickFilter;
@@ -88,7 +88,7 @@ export const PLATFORM_FACETS = [
   { value: ANY_PLATFORM, label: "Any platform", icon: "devices" },
 ];
 
-export const SHELL_LABELS: Record<string, string> = {
+const SHELL_LABELS: Record<string, string> = {
   powershell: "PowerShell",
   cmd: "Batch",
   python: "Python",
@@ -134,7 +134,7 @@ export function categoryKey(s: Pick<Script, "category">): string {
 
 // "Linux / Monitoring" -> group "Linux", label "Monitoring".
 // no " / ": group Other, label is the whole category
-export function splitCategory(category: string): {
+function splitCategory(category: string): {
   group: string;
   label: string;
 } {
@@ -166,14 +166,14 @@ function haystack(s: LibraryScript): string {
 }
 
 // each whitespace-separated term has to show up somewhere
-export function matchesSearch(s: LibraryScript, query: string): boolean {
+function matchesSearch(s: LibraryScript, query: string): boolean {
   const terms = query.toLowerCase().split(/\s+/).filter(Boolean);
   if (!terms.length) return true;
   const text = haystack(s);
   return terms.every((t) => text.includes(t));
 }
 
-export function matchesQuick(s: LibraryScript, quick: QuickFilter): boolean {
+function matchesQuick(s: LibraryScript, quick: QuickFilter): boolean {
   if (quick === "hidden") return !!s.hidden;
   if (s.hidden) return false;
   if (quick === "favorites") return !!s.favorite;

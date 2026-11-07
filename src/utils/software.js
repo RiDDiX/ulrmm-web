@@ -18,7 +18,7 @@ const sizeUnits = {
   tib: 1024 ** 4,
 };
 
-export function parseSoftwareSize(value) {
+function parseSoftwareSize(value) {
   if (typeof value === "number") return Number.isFinite(value) ? value : null;
   if (typeof value !== "string") return null;
 
@@ -29,7 +29,7 @@ export function parseSoftwareSize(value) {
   return Number(match[1]) * (unit ? sizeUnits[unit] : 1);
 }
 
-export function parseSoftwareDate(value) {
+function parseSoftwareDate(value) {
   if (typeof value !== "string") return null;
 
   const match = value.match(

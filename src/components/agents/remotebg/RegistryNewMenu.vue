@@ -32,6 +32,6 @@ const flyout = {
   self: "top start",
   transitionShow: "jump-right",
   transitionHide: "jump-left",
-};
+} as const;
 const emit = defineEmits<{ (e: "pick", type: string): void }>();
 </script>

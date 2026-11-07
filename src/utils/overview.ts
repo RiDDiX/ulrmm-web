@@ -23,7 +23,7 @@ export const SIZE_LABELS: Record<WidgetSize, string> = {
   l: "Large",
 };
 
-export const METRIC_RANGES = ["1h", "6h", "24h", "7d", "30d"];
+const METRIC_RANGES = ["1h", "6h", "24h", "7d", "30d"];
 export const RANGE_LABELS: Record<string, string> = {
   "1h": "Last hour",
   "6h": "Last 6 hours",
@@ -32,10 +32,10 @@ export const RANGE_LABELS: Record<string, string> = {
   "30d": "Last 30 days",
 };
 // sorted like the server's choices
-export const ACTIVITY_TYPES = Object.keys(TIMELINE_TYPES).sort();
-export const MAX_GROUPS = 20;
-export const MAX_CLIENTS = 200;
-export const NOTE_MAX = 2000;
+const ACTIVITY_TYPES = Object.keys(TIMELINE_TYPES).sort();
+const MAX_GROUPS = 20;
+const MAX_CLIENTS = 200;
+const NOTE_MAX = 2000;
 
 export type SettingField =
   | {
@@ -264,15 +264,8 @@ export function hasSettings(type: string): boolean {
   return Boolean(widgetMeta(type)?.settings.length);
 }
 
-const UUID4 =
-  /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/;
-
-export function isUuid4(value: unknown): boolean {
-  return typeof value === "string" && UUID4.test(value);
-}
-
 // getRandomValues works on plain http too, randomUUID does not
-export function newId(): string {
+function newId(): string {
   const b = crypto.getRandomValues(new Uint8Array(16));
   b[6] = (b[6] & 0x0f) | 0x40;
   b[8] = (b[8] & 0x3f) | 0x80;
@@ -381,51 +374,6 @@ export function settingsError(type: string, data: unknown): string | null {
   } catch (e) {
     return (e as Error).message;
   }
-}
-
-const KEYS = ["id", "type", "size", "settings"];
-
-function widgetError(w: unknown, seen: Set<string>): string | null {
-  if (!isObject(w)) return "must be an object";
-  const unknown = Object.keys(w)
-    .filter((k) => !KEYS.includes(k))
-    .sort();
-  if (unknown.length) return `unknown keys: ${unknown.join(", ")}`;
-  const missing = ["id", "size", "type"].filter((k) => !own(w, k));
-  if (missing.length) return `missing: ${missing.join(", ")}`;
-  if (!isUuid4(w.id)) return "id must be a UUID4 string";
-  if (seen.has(w.id as string)) return "duplicate id";
-  if (!widgetMeta(w.type as string))
-    return `type must be one of ${WIDGET_TYPES.join(", ")}`;
-  if (!SIZES.includes(w.size as WidgetSize))
-    return `size must be one of ${SIZES.join(", ")}`;
-  const error = settingsError(
-    w.type as string,
-    own(w, "settings") ? w.settings : {},
-  );
-  if (error) return error;
-  seen.add(w.id as string);
-  return null;
-}
-
-// null when the layout is valid. Deleted device groups are only
-// known on the server
-export function layoutError(data: unknown): string | null {
-  if (
-    !isObject(data) ||
-    Object.keys(data).length !== 1 ||
-    !own(data, "widgets")
-  )
-    return 'The layout is {"widgets": [...]}.';
-  const widgets = data.widgets;
-  if (!Array.isArray(widgets)) return "widgets must be a list";
-  if (widgets.length > MAX_WIDGETS) return `At most ${MAX_WIDGETS} widgets.`;
-  const seen = new Set<string>();
-  for (let i = 0; i < widgets.length; i++) {
-    const error = widgetError(widgets[i], seen);
-    if (error) return `Widget ${i + 1}: ${error}`;
-  }
-  return null;
 }
 
 export function defaultLayout(): Widget[] {

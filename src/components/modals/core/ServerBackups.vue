@@ -80,7 +80,7 @@
                 Large backups download faster with scp from /rmmbackups.
               </div>
               <div v-if="info?.disk?.free" class="text-caption rmm-muted">
-                {{ formatSize(info.disk.free) }} free
+                {{ fmtBytes(info.disk.free) }} free
               </div>
               <q-btn
                 flat
@@ -197,6 +197,7 @@ import DialogHeader from "@/components/ui/DialogHeader.vue";
 import { withStepUp } from "@/components/vault/stepUp";
 import { ensureConsoleStepUp } from "@/composables/accounts";
 import { notifySuccess, notifyError } from "@/utils/notify";
+import { fmtBytes } from "@/utils/format";
 import {
   deleteBackup,
   downloadBackup,
@@ -276,7 +277,7 @@ const columns = [
     field: "size",
     align: "right" as const,
     sortable: true,
-    format: (v: number) => formatSize(v),
+    format: (v: number) => fmtBytes(v),
   },
   {
     name: "name",
@@ -293,18 +294,6 @@ const lastState = computed(() => info.value?.state?.state);
 const canStart = computed(
   () => !!info.value?.runner_installed && !info.value?.busy,
 );
-
-function formatSize(bytes: number) {
-  if (!bytes && bytes !== 0) return "";
-  const units = ["B", "KB", "MB", "GB", "TB"];
-  let i = 0;
-  let n = bytes;
-  while (n >= 1024 && i < units.length - 1) {
-    n /= 1024;
-    i++;
-  }
-  return `${n.toFixed(i ? 1 : 0)} ${units[i]}`;
-}
 
 // theme tokens keep the text readable in light and dark
 function typeClass(t: string) {

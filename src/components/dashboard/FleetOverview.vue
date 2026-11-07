@@ -554,7 +554,7 @@ const actionItems = computed<ActionItem[]>(() => {
       value: totalAlerts.value,
       icon: "notifications_active",
       color: dashNegativeColor.value,
-      action: "alerts",
+      action: "alerts" as const,
     },
     {
       label: "Overdue agents",

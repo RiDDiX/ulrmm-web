@@ -58,6 +58,7 @@
 import { computed, getCurrentInstance } from "vue";
 import { useDialogPluginComponent } from "quasar";
 import DialogHeader from "@/components/ui/DialogHeader.vue";
+import { isWebUrl } from "@/utils/helpers";
 
 const props = defineProps({
   title: { required: true, type: String },
@@ -78,9 +79,6 @@ const descriptionParagraphs = computed(() =>
     .split(/\. +/)
     .map((sentence) => (sentence.endsWith(".") ? sentence : `${sentence}.`)),
 );
-
-// support links come from the device, so only web links become anchors
-const isWebUrl = (url) => /^https?:\/\//i.test(url);
 
 const outcomes = {
   success: ["rmm-pill--positive", "Installed successfully"],

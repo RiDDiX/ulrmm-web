@@ -1,5 +1,26 @@
 # Web interface changelog
 
+## 3.07.11.2026 (2026-11-07)
+
+- Update Center: a second update no longer shows the result of the previous run; the page waits until the new run is seen and reports a runner that never starts after 15 minutes
+- after a sign-in the dashboard loads fresh, so the fleet counter and the live link work after a logout and a new login in the same tab
+- device table: Uptime is empty for a device that has not reported a boot time yet (it showed 56 years); uptime is formatted the same way in the table, the device page, the container card and the network devices
+- CSV export: a cell that starts with = + - @ gets a leading quote so a spreadsheet does not run it as a formula; files carry a byte order mark so Excel reads non-ASCII text
+- the certificate banner is hidden while the server cannot tell the days left, instead of saying null days
+- filter Offline 30+ days skips devices that never checked in; a search word that contains "is:" is kept as a word
+- event log: a slow reply of the earlier log type no longer overwrites the one selected later
+- processes, drivers and image library windows stop polling when they are closed during a request; image downloads stop polling when the deploy page is left
+- vault secret fields tell the browser not to offer the saved login password
+- login: a server that cannot be reached is reported as such instead of Bad credentials
+- the first-run setup page opens for superusers only; a restricted role with no visible client sees an empty tree
+- URL actions open web links only, like the support link
+- patch approval sends at most eight requests at a time
+- script upload reads the file once and refuses an empty body
+- installed update schedule label: calendar days instead of 24-hour steps, so a DST night does not skip a day
+- byte sizes use one formatter everywhere (one decimal, space before the unit)
+- unit tests with vitest (`npm test`) for the CSV export, formatters, device filters, chunked upload, script variables, patch schedule and overview helpers; the typecheck now covers the whole app
+- removed unused code: an old mixin file, a check script, dead helpers and the client-side copy of the overview layout validation
+
 ## 2.07.11.2026 (2026-11-07)
 
 - version follows the server release, no interface change

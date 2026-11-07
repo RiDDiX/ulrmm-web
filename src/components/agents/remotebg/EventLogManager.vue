@@ -245,21 +245,28 @@ const errorMessage = computed(() => {
     : "Event log could not be loaded.";
 });
 
+// a slow earlier reply must not overwrite the newer selection
+let seq = 0;
+
 async function loadEvents() {
+  const mine = ++seq;
   loading.value = true;
   try {
-    events.value = await fetchAgentEventLog(
+    const rows = await fetchAgentEventLog(
       props.agent_id,
       logType.value,
       days.value,
     );
+    if (mine !== seq) return;
+    events.value = rows;
     error.value = null;
     lastLoadedAt.value = new Date();
   } catch (err) {
+    if (mine !== seq) return;
     console.error(err);
     error.value = err;
   } finally {
-    loading.value = false;
+    if (mine === seq) loading.value = false;
   }
 }
 

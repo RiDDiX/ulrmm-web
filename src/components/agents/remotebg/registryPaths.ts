@@ -12,12 +12,12 @@ export interface SubkeyInfo {
   hasSubkeys: boolean;
 }
 
-export const moreIdFor = (parentId: string) => parentId + MORE_MARK;
+const moreIdFor = (parentId: string) => parentId + MORE_MARK;
 export const isMoreId = (id: string) => id.endsWith(MORE_MARK);
 export const ownerOfMoreId = (id: string) =>
   id.slice(0, id.length - MORE_MARK.length);
 
-export function childId(parentId: string, name: string) {
+function childId(parentId: string, name: string) {
   return parentId.endsWith(SEP)
     ? `${parentId}${name}${SEP}`
     : `${parentId}${SEP}${name}${SEP}`;

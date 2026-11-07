@@ -4,16 +4,9 @@
     "skipLibCheck": true
   },
   "include": [
+    ".quasar/*.d.ts",
     "src/types/*.d.ts",
     "src/store/*.d.ts",
-    "src/api/http.ts",
-    "src/api/deploy.ts",
-    "src/api/baselines.ts",
-    "src/api/security.ts",
-    "src/api/server.ts",
-    "src/utils/deploy.ts",
-    "src/utils/baselines.ts",
-    "src/utils/chunkedUpload.ts",
     "src/components/deploy/**/*.ts",
     "src/components/deploy/**/*.vue",
     "src/components/baselines/**/*.ts",
@@ -21,6 +14,12 @@
     "src/components/security/**/*.ts",
     "src/components/security/**/*.vue",
     "src/components/update/**/*.vue",
-    "src/views/UpdateCenterView.vue"
+    "src/views/UpdateCenterView.vue",
+    "src/utils/*.ts",
+    "src/stores/*.ts",
+    "src/websocket/*.ts",
+    "src/api/*.ts",
+    "src/composables/*.ts",
+    "src/**/*.test.ts"
   ]
 }

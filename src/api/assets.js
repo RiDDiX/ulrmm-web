@@ -5,11 +5,6 @@ import axios from "axios";
 
 const baseUrl = "/lifecycle";
 
-export async function fetchAssetsSummary() {
-  const { data } = await axios.get(`${baseUrl}/summary/`);
-  return data;
-}
-
 export async function fetchLicenses() {
   const { data } = await axios.get(`${baseUrl}/licenses/`);
   return data;

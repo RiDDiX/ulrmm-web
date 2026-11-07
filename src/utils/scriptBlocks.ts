@@ -134,7 +134,7 @@ pkg_install() {
 }
 `;
 
-export const SCRIPT_BLOCKS: ScriptBlock[] = [
+const SCRIPT_BLOCKS: ScriptBlock[] = [
   {
     id: "ps-header",
     shell: "powershell",
@@ -370,7 +370,7 @@ const v = (
   extra: Partial<ScriptVariable> = {},
 ): ScriptVariable => ({ name, label, type, required: false, ...extra });
 
-export const SCRIPT_TEMPLATES: ScriptTemplate[] = [
+const SCRIPT_TEMPLATES: ScriptTemplate[] = [
   {
     id: "ps-blank",
     shell: "powershell",

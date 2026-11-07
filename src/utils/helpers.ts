@@ -16,6 +16,11 @@ function versionKey(v: string) {
   return [0, ...v.split(".").map((part) => parseInt(part, 10) || 0)];
 }
 
+// never hand a stored or server value straight to window.open: javascript:
+// URIs would run in this origin
+export const isWebUrl = (value: string | null | undefined) =>
+  /^https?:\/\//i.test(value || "");
+
 export function isNewer(a: string, b: string) {
   const ka = versionKey(a);
   const kb = versionKey(b);

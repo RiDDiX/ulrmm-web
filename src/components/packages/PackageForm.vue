@@ -306,14 +306,7 @@
 
 <script setup>
 import DialogHeader from "@/components/ui/DialogHeader.vue";
-import {
-  ref,
-  shallowRef,
-  reactive,
-  computed,
-  watch,
-  onBeforeUnmount,
-} from "vue";
+import { ref, reactive, computed, watch, onBeforeUnmount } from "vue";
 import { useQuasar, useDialogPluginComponent } from "quasar";
 import HelpTip from "@/components/ui/HelpTip.vue";
 import DetectionEditor from "@/components/baselines/DetectionEditor.vue";
@@ -326,10 +319,9 @@ import {
   updatePackage,
 } from "@/api/packages";
 import { serverErrors, stepUpCall } from "@/components/vault/stepUp";
-import { bytes2Human } from "@/utils/format";
 import { notifyError, notifySuccess } from "@/utils/notify";
 import { PLAT_OPTIONS, cleanDetection } from "@/utils/baselines";
-import { createChunkedUpload } from "@/utils/chunkedUpload";
+import { useChunkedUpload } from "@/composables/chunkedUpload";
 import {
   ARCHIVE_COMMANDS,
   DEFAULT_REBOOT_CODES,
@@ -431,49 +423,26 @@ function onFile(f) {
   form.name = prefill = f.name.replace(/(\.tar)?\.[^.]+$/i, "");
 }
 
-const up = reactive({
-  state: "idle",
-  sent: 0,
-  total: 0,
-  retry: 0,
-  error: null,
-});
-// set while an upload exists on the server and is not a package yet
-const uploader = shallowRef(null);
+const {
+  up,
+  uploader,
+  percent,
+  uploading: canPause,
+  progressText: uploadText,
+  run: runUpload,
+} = useChunkedUpload();
 
-const percent = computed(() =>
-  up.total ? Math.floor((up.sent / up.total) * 100) : 0,
-);
-const busy = computed(
-  () => saving.value || ["uploading", "retrying", "pausing"].includes(up.state),
-);
-const canPause = computed(() =>
-  ["uploading", "retrying", "pausing"].includes(up.state),
-);
+const busy = computed(() => saving.value || canPause.value);
 const submitLabel = computed(() => {
   if (props.pkg) return "Save";
   if (up.state === "paused" || up.state === "failed") return "Resume";
   return up.state === "uploaded" ? "Finish" : "Upload";
 });
-const progressText = computed(() => {
-  const amount = `${bytes2Human(up.sent)} of ${bytes2Human(up.total)} (${percent.value} %)`;
-  switch (up.state) {
-    case "retrying":
-      return `Connection problem, try ${up.retry} of 3 for this part... ${amount}`;
-    case "pausing":
-      return `Pausing after the current part... ${amount}`;
-    case "paused":
-      return `Paused at ${amount}. Resume continues from there.`;
-    case "failed":
-      return `${serverErrors(up.error).message} Resume continues at ${bytes2Human(up.sent)}.`;
-    case "uploaded":
-      return saving.value
-        ? "Checking the file on the server..."
-        : `${bytes2Human(up.total)} uploaded.`;
-    default:
-      return `Uploading ${amount}`;
-  }
-});
+const progressText = computed(() =>
+  up.state === "uploaded" && saving.value
+    ? "Checking the file on the server..."
+    : uploadText.value,
+);
 
 function chunkApi(f) {
   return {
@@ -576,22 +545,12 @@ async function submit() {
     return;
   }
   errors.value = {};
-  const current = (uploader.value ??= createChunkedUpload(
+  const done = await runUpload(
     file.value,
     chunkApi(file.value),
-    (p) => Object.assign(up, p),
-  ));
-  const done = await current.run();
-  // cancelled meanwhile
-  if (uploader.value !== current) return;
+    (message) => (errors.value = { file: message }),
+  );
   if (done) return finish();
-  // nothing stored yet: the code prompt was cancelled or the server refused
-  // the upload (e.g. no room); the file can be changed again
-  if (current.id === null && up.state !== "paused") {
-    if (up.state === "failed")
-      errors.value = { file: serverErrors(up.error).message };
-    uploader.value = null;
-  }
 }
 
 async function cancel() {

@@ -56,12 +56,12 @@ async function clientErrorText({ config, response: { data } }) {
   if (config.responseType === "blob") {
     return (await data.text()).replace(/^"|"$/g, "");
   }
-  if (data.non_field_errors) return data.non_field_errors[0];
+  if (data?.non_field_errors) return data.non_field_errors[0];
   if (typeof data === "string") return data;
   if (typeof data?.detail === "string") return data.detail;
   // a list body: ValidationError raised in a view, or many=True errors
   if (Array.isArray(data)) return firstMessage(data);
-  if (typeof data === "object") {
+  if (data && typeof data === "object") {
     const [key, value] = Object.entries(data)[0] ?? [];
     const message = firstMessage(value);
     if (message != null) return `${humanizeFieldKey(key)}: ${message}`;
@@ -75,7 +75,7 @@ async function errorText(error) {
   if (status === 403) {
     // reads (and PATCH-based queries) fail quietly on a missing permission
     const method = error.config.method;
-    return method === "get" || method === "patch" ? undefined : data.detail;
+    return method === "get" || method === "patch" ? undefined : data?.detail;
   }
   if (status >= 400 && status < 500) return clientErrorText(error);
   // 5xx and anything else: still a readable sentence, never a blank toast

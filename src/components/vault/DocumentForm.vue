@@ -38,8 +38,8 @@
             outlined
             input-class="vault-doc-form__body"
             :error="tooLarge"
-            :error-message="`${sizeText} of 100 KB, shorten the text to save`"
-            :hint="`${sizeText} of 100 KB`"
+            :error-message="`${fmtBytes(bytes)} of 100 KB, shorten the text to save`"
+            :hint="`${fmtBytes(bytes)} of 100 KB`"
           />
         </q-card-section>
         <q-card-actions align="right">
@@ -69,6 +69,7 @@ import { useDialogPluginComponent } from "quasar";
 import DialogHeader from "@/components/ui/DialogHeader.vue";
 import { saveDocument } from "@/api/vault";
 import { notifySuccess } from "@/utils/notify";
+import { fmtBytes } from "@/utils/format";
 
 const props = defineProps({
   // null => new document in scope/scopeKey
@@ -92,7 +93,6 @@ const form = reactive({
 const saving = ref(false);
 const bytes = computed(() => encoder.encode(form.body).length);
 const tooLarge = computed(() => bytes.value > MAX_BYTES);
-const sizeText = computed(() => `${(bytes.value / 1024).toFixed(1)} KB`);
 
 async function submit() {
   if (tooLarge.value) return;

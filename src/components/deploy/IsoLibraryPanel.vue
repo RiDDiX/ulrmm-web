@@ -303,29 +303,18 @@
 </template>
 
 <script setup lang="ts">
-import {
-  computed,
-  onBeforeUnmount,
-  onMounted,
-  reactive,
-  ref,
-  shallowRef,
-} from "vue";
+import { computed, onBeforeUnmount, onMounted, ref } from "vue";
 import { openURL, useQuasar, type QTableColumn } from "quasar";
 import { useStore } from "vuex";
 import EmptyState from "@/components/ui/EmptyState.vue";
 import { ensureConsoleStepUp } from "@/composables/accounts";
-import { serverErrors, stepUpCall } from "@/components/vault/stepUp";
+import { useChunkedUpload } from "@/composables/chunkedUpload";
+import { stepUpCall } from "@/components/vault/stepUp";
 import { copyOutput } from "@/utils/helpers";
-import { bytes2Human } from "@/utils/format";
+import { fmtBytes } from "@/utils/format";
 import { notifySuccess } from "@/utils/notify";
 import { failureText, retryAfterStepUp } from "@/utils/deploy";
-import {
-  createChunkedUpload,
-  type ChunkApi,
-  type ChunkedUpload,
-  type UploadProgress,
-} from "@/utils/chunkedUpload";
+import type { ChunkApi, ChunkedUpload } from "@/utils/chunkedUpload";
 import {
   addIso,
   deleteIso,
@@ -382,6 +371,7 @@ const shaOk = computed(
 const busy = ref<"" | "file" | "scan" | "url">("");
 const working = ref<number | null>(null);
 let timer: ReturnType<typeof setTimeout> | undefined;
+let gone = false;
 // the ids and states of the last load, so "changed" fires on real changes
 let seen: string | undefined;
 
@@ -395,7 +385,7 @@ const columns = computed<QTableColumn<BaseIso>[]>(() => [
     label: "Size",
     field: "size",
     align: "right",
-    format: (v: number) => bytes2Human(v),
+    format: (v: number) => fmtBytes(v),
     sortable: true,
   },
   { name: "boot", label: "Boot", field: "efi", align: "left" },
@@ -445,7 +435,7 @@ async function load(quiet = false) {
     error.value = await failureText(e);
   }
   loading.value = false;
-  if (pending(rows.value)) timer = setTimeout(() => load(true), 3000);
+  if (!gone && pending(rows.value)) timer = setTimeout(() => load(true), 3000);
 }
 
 // one guarded call for every action that ends with a reload
@@ -523,25 +513,18 @@ function confirmDelete(row: BaseIso) {
 // upload from the browser, in parts like software packages
 
 const file = ref<File | null>(null);
-const up = reactive<UploadProgress>({
-  state: "idle",
-  sent: 0,
-  total: 0,
-  retry: 0,
-  error: null,
-});
-// set while an upload exists on the server and is not an image yet
-const uploader = shallowRef<ChunkedUpload | null>(null);
+const {
+  up,
+  uploader,
+  percent,
+  uploading,
+  progressText: uploadText,
+  run: runUpload,
+} = useChunkedUpload();
 const finishing = ref(false);
 // the uploaded row until the server has inspected it
 const checking = ref<number | null>(null);
 
-const percent = computed(() =>
-  up.total ? Math.floor((up.sent / up.total) * 100) : 0,
-);
-const uploading = computed(() =>
-  ["uploading", "retrying", "pausing"].includes(up.state),
-);
 const verifying = computed(
   () =>
     finishing.value ||
@@ -552,22 +535,9 @@ const verifying = computed(
 const uploadLabel = computed(() =>
   up.state === "paused" || up.state === "failed" ? "Resume" : "Upload",
 );
-const progressText = computed(() => {
-  if (verifying.value) return "Verifying the image on the server...";
-  const amount = `${bytes2Human(up.sent)} of ${bytes2Human(up.total)} uploaded (${percent.value} %)`;
-  switch (up.state) {
-    case "retrying":
-      return `Connection problem, try ${up.retry} of 3 for this part... ${amount}`;
-    case "pausing":
-      return `Pausing after the current part... ${amount}`;
-    case "paused":
-      return `Paused, ${amount}. Resume continues from there.`;
-    case "failed":
-      return `${serverErrors(up.error).message} Resume continues at ${bytes2Human(up.sent)}.`;
-    default:
-      return amount;
-  }
-});
+const progressText = computed(() =>
+  verifying.value ? "Verifying the image on the server..." : uploadText.value,
+);
 
 function chunkApi(f: File): ChunkApi {
   return {
@@ -585,20 +555,12 @@ function chunkApi(f: File): ChunkApi {
 async function upload() {
   if (!file.value) return;
   error.value = "";
-  const current = (uploader.value ??= createChunkedUpload(
+  const done = await runUpload(
     file.value,
     chunkApi(file.value),
-    (p) => Object.assign(up, p),
-  ));
-  const done = await current.run();
-  // cancelled meanwhile
-  if (uploader.value !== current) return;
-  if (done) return finish(current);
-  // nothing stored yet: the code prompt was cancelled or the server refused
-  if (current.id === null && up.state !== "paused") {
-    if (up.state === "failed") error.value = serverErrors(up.error).message;
-    uploader.value = null;
-  }
+    (message) => (error.value = message),
+  );
+  if (done) return finish(done);
 }
 
 async function finish(current: ChunkedUpload) {
@@ -644,6 +606,7 @@ defineExpose({ load });
 
 onMounted(load);
 onBeforeUnmount(() => {
+  gone = true;
   clearTimeout(timer);
   // leaving the page drops the unfinished upload
   uploader.value?.cancel();

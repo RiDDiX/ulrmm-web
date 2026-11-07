@@ -62,6 +62,12 @@ function sharedConnection(
   };
 }
 
+// sign-out: the next user opens fresh sockets with their own token
+export function closeAllShared() {
+  for (const socket of shared.values()) socket.close();
+  shared.clear();
+}
+
 export function useDashWSConnection() {
   return sharedConnection("dashinfo", { autoReconnect: true });
 }

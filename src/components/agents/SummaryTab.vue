@@ -834,9 +834,11 @@ import { notifySuccess } from "@/utils/notify";
 import {
   agentStatusMeta,
   applianceOf,
+  fmtBytes,
   platformMeta,
   powerEventMeta,
   relativeTime,
+  uptimeText,
   usageLevel,
   MESH_OFFLINE_WARNING,
 } from "@/utils/format";
@@ -1041,7 +1043,7 @@ export default {
       const stats = perf.value;
       if (!stats || (stats.mem_used === null && stats.mem_total === null))
         return "";
-      return `${formatBytes(stats.mem_used)} used of ${formatBytes(stats.mem_total)}`;
+      return `${fmtBytes(stats.mem_used)} used of ${fmtBytes(stats.mem_total)}`;
     });
     // the server stamps collected_at on failed samples too (agents/views.py
     // perf), so a failure must not read as "Updated ... ago"
@@ -1072,11 +1074,7 @@ export default {
         ? store.getters.formatDate(new Date(summary.value.boot_time * 1000))
         : "—",
     );
-    const uptime = computed(() =>
-      summary.value.boot_time
-        ? duration(Date.now() / 1000 - summary.value.boot_time)
-        : "—",
-    );
+    const uptime = computed(() => uptimeText(summary.value.boot_time));
     const loggedInUser = computed(() => {
       const current = summary.value.logged_in_username;
       if (current && current !== "None") return { active: true, name: current };
@@ -1244,25 +1242,6 @@ export default {
       } catch {
         return color;
       }
-    }
-
-    function duration(seconds) {
-      const days = Math.max(0, Math.floor(seconds / 86_400));
-      const hours = Math.max(0, Math.floor((seconds % 86_400) / 3_600));
-      const minutes = Math.max(0, Math.floor((seconds % 3_600) / 60));
-      return [days && `${days}d`, hours && `${hours}h`, `${minutes}m`]
-        .filter(Boolean)
-        .join(" ");
-    }
-
-    function formatBytes(value) {
-      if (!Number.isFinite(value)) return "—";
-      const units = ["B", "KB", "MB", "GB", "TB"];
-      const index = Math.min(
-        units.length - 1,
-        Math.floor(Math.log(Math.max(value, 1)) / Math.log(1024)),
-      );
-      return `${(value / 1024 ** index).toFixed(index ? 1 : 0)} ${units[index]}`;
     }
 
     function diskBarColor(percent) {

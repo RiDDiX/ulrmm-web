@@ -7,7 +7,8 @@ import { endpoint } from "@/api/http";
 import { router } from "@/router";
 import type { CoreSetting } from "@/types/core/settings";
 import type * as urlActions from "@/types/core/urlactions";
-import { getCenteredWindowOptions } from "@/utils/helpers";
+import { getCenteredWindowOptions, isWebUrl } from "@/utils/helpers";
+import { notifyError } from "@/utils/notify";
 
 type URLAction = urlActions.URLAction;
 
@@ -101,9 +102,11 @@ export function removeURLAction(id: number) {
 type RunTarget = { agent_id?: string; client?: number; site?: number };
 type RunURLActionRequest = RunTarget & { action: number };
 
-// the server answers with the url to open
+// the server answers with the url to open; only web links leave the dashboard
 export async function runURLAction(payload: RunURLActionRequest) {
-  openURL(await core.patch<string>("/urlaction/run/", payload));
+  const url = await core.patch<string>("/urlaction/run/", payload);
+  if (isWebUrl(url)) openURL(url);
+  else notifyError("URL action returned no web link");
 }
 
 export function runTestURLAction(

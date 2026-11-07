@@ -249,6 +249,7 @@ const HEALTH_MS = 2000;
 const HEALTH_SLOW_MS = 5000;
 const HEALTH_SLOW_AFTER = 10;
 const HEALTH_GIVEUP_MS = 15 * 60 * 1000;
+const TERMINAL = ["done", "failed", "interrupted"];
 const STEPS: UpdatePhase[] = [
   "preflight",
   "download",
@@ -286,6 +287,8 @@ const log = ref("");
 let offset = 0;
 let healthMisses = 0;
 let lastSeen = 0;
+let followedAt = 0;
+let seenRunning = false;
 let release = false;
 let timer: ReturnType<typeof setTimeout> | null = null;
 let stopped = false;
@@ -347,7 +350,8 @@ async function start(body: UpdateMode) {
 function follow(version: string | null, mode: UpdateMode["mode"] = "git") {
   target.value = version;
   release = mode === "release";
-  lastSeen = Date.now();
+  lastSeen = followedAt = Date.now();
+  seenRunning = false;
   outcome.value = "running";
   phase.value = null;
   lastStep.value = null;
@@ -377,6 +381,12 @@ function status(e: unknown) {
 // no response at all: the API is down for the restart
 const isNetwork = (e: unknown) => !(e as { response?: unknown })?.response;
 
+// until the state was seen running or idle once, done/failed is the previous run's
+function runState(st?: string) {
+  if (!st || !TERMINAL.includes(st)) seenRunning = true;
+  return seenRunning ? st : "queued";
+}
+
 function finishBy(state: string) {
   if (state === "done") {
     phase.value = "done";
@@ -405,12 +415,17 @@ async function tick() {
   if (prog.status === "fulfilled") {
     lastSeen = Date.now();
     applyProgress(prog.value);
-    const st = prog.value.state?.state;
-    if (["done", "failed", "interrupted"].includes(st)) {
+    const st = runState(prog.value.state?.state);
+    if (st && TERMINAL.includes(st)) {
       finishBy(st);
       return;
     }
-    if (prog.value.phase === "restart") return reconnect();
+    // the runner never picked the request up
+    if (st !== "running" && Date.now() - followedAt >= HEALTH_GIVEUP_MS) {
+      outcome.value = "stalled";
+      return;
+    }
+    if (prog.value.phase === "restart" && st === "running") return reconnect();
     return schedule(tick, PROGRESS_MS);
   }
 
@@ -477,7 +492,7 @@ async function healthTick() {
   }
   if (stopped) return;
   applyProgress(p);
-  const st = p.state?.state;
+  const st = runState(p.state?.state);
   if (st === "failed" || st === "interrupted") return finishBy(st);
   const landed =
     release && !!target.value && version === target.value && st !== "running";
@@ -498,7 +513,7 @@ function notBack() {
 
 function keepWaiting() {
   outcome.value = "reconnect";
-  lastSeen = Date.now();
+  lastSeen = followedAt = Date.now();
   schedule(healthTick, HEALTH_MS);
 }
 

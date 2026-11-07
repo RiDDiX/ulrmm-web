@@ -46,10 +46,6 @@ export function fetchScriptSnippets(params = {}) {
   return scripts.get("/snippets/", { params });
 }
 
-export function fetchScriptSnippet(id, params = {}) {
-  return scripts.get(`/snippets/${id}/`, { params });
-}
-
 export function saveScriptSnippet(payload) {
   return scripts.post("/snippets/", payload);
 }

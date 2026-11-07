@@ -7,6 +7,7 @@
     v-sortable-headers
     v-bind="$attrs"
     class="rmm-table"
+    :rows="rows"
     :columns="allColumns"
     :visible-columns="visibleColumns"
     :table-class="tableClass"
@@ -46,6 +47,7 @@ import type { QTableColumn } from "quasar";
 import { sortableHeaders as vSortableHeaders } from "@/utils/sortableHeaders";
 
 interface Props {
+  rows: readonly unknown[];
   columns: QTableColumn[];
   columnSelect?: boolean;
   excludeColumns?: string[];

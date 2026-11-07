@@ -13,7 +13,7 @@ export function ipToInt(ip) {
   return parts.reduce((n, p) => n * 256 + p, 0);
 }
 
-export function intToIp(n) {
+function intToIp(n) {
   return [24, 16, 8, 0].map((s) => Math.floor(n / 2 ** s) % 256).join(".");
 }
 

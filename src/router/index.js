@@ -7,11 +7,14 @@ import routes from "./routes";
 
 const { createRouter, createWebHistory } = VueRouter;
 
-// for modules outside components (the api helpers resolve pop-out window
-// urls with it): import { router } from "@/router"
+// only resolves hrefs for modules outside components (the api helpers'
+// pop-out window urls): import { router } from "@/router". Memory history
+// gives the same hrefs and registers no window listeners
 export const router = createRouter({
   routes,
-  history: createWebHistory(import.meta.env.QUASAR_VUE_ROUTER_BASE),
+  history: VueRouter.createMemoryHistory(
+    import.meta.env.QUASAR_VUE_ROUTER_BASE,
+  ),
 });
 
 function appHistory() {

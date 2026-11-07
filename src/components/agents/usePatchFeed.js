@@ -168,9 +168,16 @@ export function usePatchFeed({ afterLoad, onAgentChange }) {
     stopTimer();
     busy.value = true;
     try {
-      const outcomes = await Promise.allSettled(
-        ids.map((id) => editAgentUpdate(id, { action })),
-      );
+      // at most 8 requests in flight; select-all can be hundreds
+      const outcomes = [];
+      for (let i = 0; i < ids.length; i += 8) {
+        const slice = ids.slice(i, i + 8);
+        outcomes.push(
+          ...(await Promise.allSettled(
+            slice.map((id) => editAgentUpdate(id, { action })),
+          )),
+        );
+      }
       // rows change locally only when every request went through; after a
       // partial failure the list is reloaded to match the server
       const refused = outcomes.filter((o) => o.status === "rejected").length;

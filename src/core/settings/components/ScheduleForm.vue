@@ -140,7 +140,7 @@
 <script lang="ts" setup>
 import { reactive, ref, watch } from "vue";
 import { date, useDialogPluginComponent } from "quasar";
-import { until } from "@vueuse/shared";
+import { until } from "@vueuse/core";
 
 import { useScheduleShared } from "../api";
 import HelpTip from "@/components/ui/HelpTip.vue";

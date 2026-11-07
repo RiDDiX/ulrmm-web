@@ -5,10 +5,6 @@ import { endpoint } from "@/api/http";
 
 const checks = endpoint("/checks");
 
-export function fetchChecks(params = {}) {
-  return checks.get("/", { params });
-}
-
 export function saveCheck(payload) {
   return checks.post("/", payload);
 }

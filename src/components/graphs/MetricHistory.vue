@@ -56,7 +56,8 @@ import {
   METRICS,
 } from "@/api/metrics";
 import { SILENT_REQUEST_CONFIG } from "@/constants/constants";
-import { fmtBytes, fmtNum, isNum } from "@/composables/agentState";
+import { fmtNum, isNum } from "@/composables/agentState";
+import { fmtBytes } from "@/utils/format";
 import { escapeHtml } from "@/utils/patchStatus";
 import EmptyState from "@/components/ui/EmptyState.vue";
 import HelpTip from "@/components/ui/HelpTip.vue";

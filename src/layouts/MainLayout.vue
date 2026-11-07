@@ -369,7 +369,10 @@ onBeforeUnmount(() => {
           </q-chip>
           <!-- only once the TLS certificate is close to expiry -->
           <q-chip
-            v-if="fleet.daysUntilCertExpires <= 15"
+            v-if="
+              fleet.daysUntilCertExpires != null &&
+              fleet.daysUntilCertExpires <= 15
+            "
             text-color="white"
             icon="warning"
             dense

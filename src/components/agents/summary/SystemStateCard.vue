@@ -202,7 +202,8 @@
 <script setup>
 import { computed } from "vue";
 import { obj, onOff, pick } from "@/utils/health";
-import { arr, fmtBytes, fmtNum, fmtPct, isNum } from "@/composables/agentState";
+import { arr, fmtNum, fmtPct, isNum } from "@/composables/agentState";
+import { fmtBytes } from "@/utils/format";
 import HelpTip from "@/components/ui/HelpTip.vue";
 
 // the cleaned "system" section of GET /metrics/<id>/state/

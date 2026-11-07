@@ -45,7 +45,7 @@ function parseSearch(terms) {
   const parsed = { tests: [], status: null, words: [] };
   const lowered = terms ? terms.toLowerCase() : "";
   for (const token of lowered.trim().split(" ")) {
-    if (!token.includes("is:")) {
+    if (!token.startsWith("is:")) {
       if (token) parsed.words.push(token);
       continue;
     }
@@ -59,6 +59,7 @@ function parseSearch(terms) {
 function statusMatches(row, status) {
   if (status === null) return true;
   if (status !== "expired") return row.status === status;
+  if (!row.last_seen) return false;
   const idle = date.getDateDiff(new Date(), new Date(row.last_seen), "days");
   return idle >= 30;
 }

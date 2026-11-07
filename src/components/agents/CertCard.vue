@@ -40,9 +40,7 @@
         </span>
         <template v-if="ident?.identity?.rotate_pending.length">
           <span>Pending</span>
-          <span>{{
-            ident.identity.rotate_pending.map((w) => ROTATE_LABEL[w]).join(", ")
-          }}</span>
+          <span>{{ rotateLabels(ident.identity.rotate_pending) }}</span>
         </template>
       </div>
     </q-card>
@@ -59,6 +57,7 @@ import {
   fetchAgentIdentity,
   type AgentCert,
   type AgentIdentityReply,
+  type RotateWhat,
 } from "@/api/security";
 import { IDENTITY_STATE, ROTATE_LABEL } from "@/components/security/labels";
 import { relativeTime } from "@/utils/format";
@@ -71,6 +70,9 @@ const ident = ref<AgentIdentityReply | null>(null);
 // no role for it => no card
 const shown = ref(true);
 const failed = ref(false);
+
+const rotateLabels = (what: RotateWhat[]) =>
+  what.map((w) => ROTATE_LABEL[w]).join(", ");
 
 const active = computed(() =>
   certs.value.find(

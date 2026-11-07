@@ -297,3 +297,57 @@ export function rebootConsequence(rebootAfterInstall?: string | null): string {
       return "the device is not rebooted automatically";
   }
 }
+
+// Confirm for "Install approved updates", shared by the patch tab and the
+// device menu. The message is html; name (the device) goes in escaped.
+export function installPrompt(
+  rows: PatchRow[],
+  policy:
+    | (SeverityPolicy & { reboot_after_install?: string | null })
+    | null
+    | undefined,
+  platform: string,
+  name?: string,
+) {
+  const count = countWillInstall(rows, policy);
+  const reboot = policy?.reboot_after_install;
+  // the automatic reboot only runs on Windows by default; posix installs
+  // trigger it only with ULRMM_POSIX_PATCH_AUTOMATION on (winupdate/tasks.py)
+  const windows = platform === "windows";
+  const restarts = windows && (reboot === "required" || reboot === "always");
+  const on = name ? ` on ${escapeHtml(name)}` : "";
+  return {
+    count,
+    title: count
+      ? `Install ${count} approved update${count === 1 ? "" : "s"}${on}?`
+      : "Install approved updates?",
+    message: count
+      ? `${installBusyWarning(rows, policy, platform)}${willInstallListHtml(rows, policy)}${windows ? `After installation, ${rebootConsequence(reboot)}.` : ""}`
+      : "There are no approved updates to install.",
+    ok: { label: "Install", color: restarts ? "negative" : "primary" },
+  };
+}
+
+export interface RebootTarget {
+  monitoring_type?: string;
+  logged_username?: string | null;
+  logged_in_username?: string | null;
+  client_name?: string;
+  client?: string;
+  site_name?: string;
+}
+
+// Confirm for "Reboot now", plain text
+export function rebootPrompt(agent: RebootTarget, name: string) {
+  const kind = agent.monitoring_type === "server" ? "Server" : "Workstation";
+  const user = agent.logged_username || agent.logged_in_username;
+  const signedIn =
+    user && user !== "None" && user !== "-"
+      ? ` ${user} is signed in; unsaved work will be lost.`
+      : "";
+  return {
+    title: `Reboot ${name} now?`,
+    message: `${kind}, ${agent.client_name || agent.client} / ${agent.site_name}.${signedIn}`,
+    ok: { label: "Reboot now", color: "negative" },
+  };
+}

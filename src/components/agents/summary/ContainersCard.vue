@@ -97,7 +97,7 @@
             <td class="text-right rmm-num">
               {{ fmtBytes(c.net_rx) }} / {{ fmtBytes(c.net_tx) }}
             </td>
-            <td class="text-right rmm-num">{{ uptime(c.uptime) }}</td>
+            <td class="text-right rmm-num">{{ durationText(c.uptime) }}</td>
           </tr>
         </tbody>
       </q-markup-table>
@@ -108,7 +108,8 @@
 <script setup>
 import { computed } from "vue";
 import { obj, pick } from "@/utils/health";
-import { arr, fmtBytes, fmtNum, isNum } from "@/composables/agentState";
+import { arr, fmtNum, isNum } from "@/composables/agentState";
+import { durationText, fmtBytes } from "@/utils/format";
 import HelpTip from "@/components/ui/HelpTip.vue";
 
 // the cleaned "containers" section of GET /metrics/<id>/state/
@@ -162,16 +163,6 @@ function stateClass(state) {
   if (state === "running") return "rmm-pill--positive";
   if (state === "restarting" || state === "paused") return "rmm-pill--warning";
   return "rmm-pill--neutral";
-}
-
-function uptime(seconds) {
-  if (!isNum(seconds) || seconds <= 0) return "—";
-  const d = Math.floor(seconds / 86400);
-  const h = Math.floor((seconds % 86400) / 3600);
-  const m = Math.floor((seconds % 3600) / 60);
-  if (d) return `${d} d ${h} h`;
-  if (h) return `${h} h ${m} min`;
-  return m ? `${m} min` : "< 1 min";
 }
 </script>
 

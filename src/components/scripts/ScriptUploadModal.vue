@@ -42,6 +42,7 @@
             dense
             counter
             hint="Plain-text file; its content becomes the script body"
+            :rules="[(val) => !!val || '*Required']"
           >
             <template #prepend>
               <q-icon name="attach_file" />
@@ -104,7 +105,7 @@
 <script setup>
 import { ref, watch } from "vue";
 import { useDialogPluginComponent } from "quasar";
-import { notifySuccess } from "@/utils/notify";
+import { notifyError, notifySuccess } from "@/utils/notify";
 import { saveScript as uploadScript } from "@/api/scripts";
 import { shellOptions } from "@/composables/scripts";
 import { agentPlatformOptions } from "@/composables/agents";
@@ -140,19 +141,23 @@ const form = ref({});
 const file = ref(null);
 const saving = ref(false);
 
-watch(file, (f) => {
-  if (!f) {
-    form.value.script_body = "";
-    return;
+watch(file, async (f) => {
+  form.value.script_body = "";
+  if (!f) return;
+  try {
+    const text = await f.text();
+    // a file picked while this one was read wins
+    if (file.value === f) form.value.script_body = text;
+  } catch {
+    if (file.value === f) notifyError("The file could not be read.");
   }
-  const reader = new FileReader();
-  reader.onloadend = () => {
-    form.value.script_body = reader.result;
-  };
-  reader.readAsText(f);
 });
 
 async function submit() {
+  if (!form.value.script_body) {
+    notifyError("The script file is empty or could not be read.");
+    return;
+  }
   saving.value = true;
   try {
     const res = await uploadScript(form.value);

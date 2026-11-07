@@ -3,7 +3,7 @@
 
 // name shown in the dashboard: display name if one is set, else the hostname.
 // hostname is the machine id (install, mesh links, API payloads).
-export const DISPLAY_NAME_MAX = 64;
+const DISPLAY_NAME_MAX = 64;
 
 interface Named {
   hostname?: string | null;

@@ -164,9 +164,7 @@
                   {{ props.row.type === "folder" ? "Folder" : "File" }}
                 </q-td>
                 <q-td key="size" :props="props">
-                  {{
-                    props.row.size === null ? "" : bytes2Human(props.row.size)
-                  }}
+                  {{ props.row.size === null ? "" : fmtBytes(props.row.size) }}
                 </q-td>
                 <q-td key="actions" :props="props" @click.stop>
                   <RowActions :label="`Actions for ${props.row.name}`">
@@ -206,7 +204,7 @@ import {
 import { downloadReportAsset } from "@/reporting/actions";
 import { useReportingPerms } from "@/reporting/permissions";
 import { assetNameRule } from "@/reporting/utils";
-import { bytes2Human } from "@/utils/format";
+import { fmtBytes } from "@/utils/format";
 
 import type { AssetNode, UploadAssetsResponse } from "@/reporting/types";
 import type { MenuItem } from "@/types/menu";

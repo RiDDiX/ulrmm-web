@@ -391,7 +391,7 @@ import {
   type SdioEntry,
   type SdioJob,
 } from "@/utils/drivers";
-import { bytes2Human, relativeTime } from "@/utils/format";
+import { fmtBytes, relativeTime } from "@/utils/format";
 import {
   notifyError,
   notifyInfo,
@@ -606,10 +606,13 @@ async function probeCatalogCheck() {
 // the row whose catalog install job runs; one at a time
 const catalogBusy = ref<string | null>(null);
 let pollTimer = 0;
+// a stop or a newer install ends the older chain, also with a reply in flight
+let pollRun = 0;
 const POLL_MS = 3000;
 const POLL_LIMIT_MS = 30 * 60 * 1000;
 
 function stopPoll() {
+  pollRun++;
   window.clearTimeout(pollTimer);
   catalogBusy.value = null;
 }
@@ -620,7 +623,7 @@ function confirmCatalogInstall(row: Driver) {
   const facts = [
     !entry.title.includes(entry.version) && `version ${entry.version}`,
     entry.date && `from ${entry.date}`,
-    entry.size > 0 && bytes2Human(entry.size),
+    entry.size > 0 && fmtBytes(entry.size),
   ].filter(Boolean);
   const parts = [
     `${entry.title} (${facts.join(", ")}) for ${row.device || row.device_id}.`,
@@ -651,20 +654,27 @@ async function installFromCatalog(row: Driver) {
       `Downloading ${entry.title} from the Microsoft Update Catalog`,
       4000,
     );
-    poll(agentId, job, entry.title, Date.now() + POLL_LIMIT_MS);
+    poll(agentId, job, entry.title, Date.now() + POLL_LIMIT_MS, ++pollRun);
   } catch {
     // the response interceptor shows the error
     catalogBusy.value = null;
   }
 }
 
-function poll(agentId: string, job: string, title: string, deadline: number) {
+function poll(
+  agentId: string,
+  job: string,
+  title: string,
+  deadline: number,
+  run: number,
+) {
   pollTimer = window.setTimeout(async () => {
     if (agentId !== selectedAgent.value) return stopPoll();
     let reply = null;
     try {
       reply = await fetchCatalogJob(agentId, job);
     } catch (e) {
+      if (run !== pollRun) return;
       if ((e as { response?: { status?: number } })?.response?.status === 404) {
         stopPoll();
         notifyError(`The install job for ${title} expired on the server.`);
@@ -672,6 +682,7 @@ function poll(agentId: string, job: string, title: string, deadline: number) {
       }
       // a missed poll is retried
     }
+    if (run !== pollRun) return;
     if (agentId !== selectedAgent.value) return stopPoll();
     if (reply?.state === "queued") {
       stopPoll();
@@ -694,7 +705,7 @@ function poll(agentId: string, job: string, title: string, deadline: number) {
       );
       return;
     }
-    poll(agentId, job, title, deadline);
+    poll(agentId, job, title, deadline, run);
   }, POLL_MS);
 }
 
@@ -777,6 +788,8 @@ async function remove(row: Driver) {
 const SDIO_POLL_LIMIT_MS = 4 * 60 * 60 * 1000;
 let sdioTimer = 0;
 let sdioUntil = 0;
+// a reload still in flight at unmount must not arm the poll again
+let unmounted = false;
 // background reloads leave the table without the loading overlay
 const quiet = ref(false);
 
@@ -787,6 +800,7 @@ function stopSdioPoll() {
 
 function pollSdio(data: DriverInventory | null) {
   window.clearTimeout(sdioTimer);
+  if (unmounted) return;
   if (!data?.drivers.some((d) => isSdioJobActive(d.sdio_job))) {
     sdioUntil = 0;
     return;
@@ -864,6 +878,7 @@ watch(selectedAgent, () => {
   filter.value = "";
 });
 onBeforeUnmount(() => {
+  unmounted = true;
   window.clearTimeout(followUp);
   stopPoll();
   stopSdioPoll();

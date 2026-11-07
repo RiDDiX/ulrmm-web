@@ -206,7 +206,7 @@ import {
   fetchAgentProcesses,
   killAgentProcess,
 } from "@/api/agents";
-import { bytes2Human } from "@/utils/format";
+import { fmtBytes } from "@/utils/format";
 import { deviceName } from "@/utils/deviceName";
 import { notifySuccess } from "@/utils/notify";
 import { sortableHeaders as vSortableHeaders } from "@/utils/sortableHeaders";
@@ -238,7 +238,7 @@ const columns = [
 const cellDefs = [
   { field: "name", show: (r) => r.name },
   { field: "cpu_percent", num: true, show: (r) => `${r.cpu_percent}%` },
-  { field: "membytes", num: true, show: (r) => bytes2Human(r.membytes) },
+  { field: "membytes", num: true, show: (r) => fmtBytes(r.membytes) },
   { field: "username", show: (r) => r.username },
   { field: "pid", num: true, show: (r) => r.pid },
 ];
@@ -284,7 +284,7 @@ const stats = computed(() => [
   {
     icon: "fas fa-memory",
     label: "RAM",
-    value: `${bytes2Human(totalRamUsed.value)}/${totalRam.value} GB`,
+    value: `${fmtBytes(totalRamUsed.value)}/${totalRam.value} GB`,
     hint: "Memory used by every process on the agent / memory installed",
   },
 ]);
@@ -325,7 +325,10 @@ async function loadProcesses() {
 function startPoll() {
   stopPoll();
   loadProcesses();
-  timer.value = setInterval(loadProcesses, pollInterval.value * 1000);
+  // skip a tick while the previous load or an end-process call still runs
+  timer.value = setInterval(() => {
+    if (!loading.value) loadProcesses();
+  }, pollInterval.value * 1000);
 }
 
 function stopPoll() {
@@ -382,9 +385,13 @@ function confirmKill(proc) {
     });
 }
 
+// closed while fetchAgent ran: do not start a poll nobody clears
+let gone = false;
+
 onMounted(async () => {
   try {
     const agent = await fetchAgent(props.agent_id);
+    if (gone) return;
     totalRam.value = agent.total_ram;
     hostname.value = deviceName(agent);
     startPoll();
@@ -394,7 +401,10 @@ onMounted(async () => {
   }
 });
 
-onBeforeUnmount(() => clearInterval(timer.value));
+onBeforeUnmount(() => {
+  gone = true;
+  clearInterval(timer.value);
+});
 </script>
 
 <style scoped>

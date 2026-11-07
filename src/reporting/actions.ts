@@ -42,7 +42,7 @@ export function promptDependencies(
   });
 }
 
-export function promptFileName(name: string): Promise<string | null> {
+function promptFileName(name: string): Promise<string | null> {
   return new Promise((resolve) => {
     let result: string | null = null;
     Dialog.create({

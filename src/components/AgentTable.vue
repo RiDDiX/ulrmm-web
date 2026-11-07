@@ -222,7 +222,7 @@
           </q-td>
 
           <q-td key="boot_time" :props="scope">
-            {{ uptime(scope.row.boot_time) }}
+            {{ uptimeText(scope.row.boot_time) }}
           </q-td>
 
           <!-- a checkbox the alert template forces is shown disabled -->
@@ -404,8 +404,8 @@ import {
   agentStatusMeta,
   alertOverrideMeta,
   checksMeta,
-  elapsedText,
   platformMeta,
+  uptimeText,
 } from "@/utils/format";
 import {
   checksTooltip,
@@ -592,7 +592,6 @@ CellTip.props = { text: String };
 // rows after search, filters and sort
 const shownRows = () => tableRef.value?.filteredSortedRows || [];
 
-const uptime = (unixtime) => elapsedText(Date.now() - unixtime * 1000);
 const osName = (row) => row.operating_system || platformMeta(row.plat).label;
 const moreTags = (row) =>
   row.tags

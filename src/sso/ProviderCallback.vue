@@ -37,7 +37,7 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted, ref } from "vue";
+import { nextTick, onMounted, ref } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { useAuthStore } from "@/stores/auth";
 import { useBrandingStore } from "@/stores/branding";
@@ -70,6 +70,10 @@ onMounted(async () => {
     }
   }
 
-  router.replace(auth.takeNext() ?? { name: "Dashboard" });
+  // a full page load: stores and the dashinfo socket start for this user.
+  // nextTick lets the session store write token and next first
+  const target = auth.takeNext() ?? { name: "Dashboard" };
+  await nextTick();
+  window.location.replace(router.resolve(target).href);
 });
 </script>

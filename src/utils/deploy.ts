@@ -33,7 +33,7 @@ export interface ScopeState {
 }
 
 const HOUR = 3_600_000;
-export const MAX_TTL_HOURS = 24 * 365;
+const MAX_TTL_HOURS = 24 * 365;
 // the server measures the 365 days on its own clock
 const CLOCK_MARGIN = 10 * 60_000;
 const MAX_TTL = MAX_TTL_HOURS * HOUR - CLOCK_MARGIN;
@@ -86,7 +86,7 @@ export function nameError(name: string): string {
   return "";
 }
 
-export const MAX_ENROLLMENTS = 100_000;
+const MAX_ENROLLMENTS = 100_000;
 
 // "" when the field can be sent; empty means no limit
 export function maxEnrollmentsError(value: string | number | null): string {
@@ -226,7 +226,7 @@ const ACRONYMS = new Set(
   ),
 );
 
-export function humanize(key: string): string {
+function humanize(key: string): string {
   const words = key
     .split(/[._\s-]+/)
     .filter(Boolean)
@@ -275,7 +275,7 @@ const REQUIREMENTS = new Set(["device_required"]);
 export const isRequirement = (capability: string) =>
   REQUIREMENTS.has(capability);
 
-export function capabilityReason(capability: string, target: Target): string {
+function capabilityReason(capability: string, target: Target): string {
   return (
     CAPABILITY_REASONS[capability] ??
     `${target.label} does not support ${capabilityLabel(capability)}.`
@@ -284,7 +284,7 @@ export function capabilityReason(capability: string, target: Target): string {
 
 // policy fields, read from the target's defaults
 
-export const POLICY_GROUPS = [
+const POLICY_GROUPS = [
   { id: "general", label: "General", icon: "tune" },
   { id: "software", label: "Software", icon: "apps" },
   { id: "disk", label: "Disk & encryption", icon: "storage" },
@@ -366,7 +366,7 @@ export interface PolicyField {
 }
 
 // the preset select's own choice for edited values; never sent
-export const CUSTOM = "custom";
+const CUSTOM = "custom";
 
 const isObject = (value: unknown): value is Record<string, unknown> =>
   !!value && typeof value === "object" && !Array.isArray(value);
@@ -393,7 +393,7 @@ function kindOf(path: string, value: unknown): FieldKind {
 }
 
 // the Linux disk layout and time zones, for targets without field metadata
-export const LAYOUT_OPTIONS = ["lvm", "direct"];
+const LAYOUT_OPTIONS = ["lvm", "direct"];
 
 function zones(): string[] {
   try {
@@ -573,7 +573,7 @@ export function choiceSections(
 }
 
 // false while a show_if condition does not hold for the profile
-export function fieldShown(
+function fieldShown(
   field: PolicyField,
   profile: Record<string, unknown>,
 ): boolean {
@@ -597,7 +597,7 @@ export const passwordToGenerate = (
 
 // the edition reason when the target does not allow the field, else "";
 // a select or number stays, the server narrows its range per edition
-export function fieldBlock(field: PolicyField, target: Target): string {
+function fieldBlock(field: PolicyField, target: Target): string {
   if (!field.capability || field.kind === "select" || field.kind === "number")
     return "";
   if (target.capabilities?.[field.capability] !== false) return "";
@@ -613,7 +613,7 @@ export interface MissingFeature {
 
 // capabilities the target lacks that no field stands for, so the step can
 // still say why the feature is missing
-export function missingFeatures(
+function missingFeatures(
   target: Target,
   fields: PolicyField[],
 ): MissingFeature[] {
@@ -839,7 +839,7 @@ const MONACO_LANGUAGES: Record<string, string> = { text: "plaintext" };
 export const monacoLanguage = (language: string) =>
   MONACO_LANGUAGES[language] ?? language;
 
-export const slug = (text: string) =>
+const slug = (text: string) =>
   text
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, "-")

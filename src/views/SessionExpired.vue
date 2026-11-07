@@ -30,7 +30,6 @@
 import { onMounted } from "vue";
 import { useRoute } from "vue-router";
 import { useAuthStore } from "@/stores/auth";
-import { useDashWSConnection } from "@/websocket/websocket";
 import { useBrandingStore } from "@/stores/branding";
 
 // setup store
@@ -39,11 +38,6 @@ const branding = useBrandingStore();
 const route = useRoute();
 const reason = route.query.reason;
 
-// setup websocket
-const { close } = useDashWSConnection();
-
-onMounted(async () => {
-  await auth.logout();
-  close();
-});
+// logout also closes the shared sockets
+onMounted(() => auth.logout());
 </script>

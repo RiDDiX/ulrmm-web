@@ -5,7 +5,7 @@
 // and the Device Manager problem codes
 
 import type { QDialogOptions } from "quasar";
-import { bytes2Human } from "@/utils/format";
+import { fmtBytes } from "@/utils/format";
 
 export interface Driver {
   device: string;
@@ -145,7 +145,7 @@ export interface DriverInventory {
 }
 
 // removing a network driver can cut the device off, the agent included
-export const NET_CLASS = "net";
+const NET_CLASS = "net";
 
 // ConfigManagerErrorCode (CM_PROB_*), worded like Device Manager
 const PROBLEM_TEXT: Record<number, string> = {
@@ -256,7 +256,7 @@ export const BITTORRENT_ONLY =
 export const sdioName = (e: SdioEntry) => e.desc || e.inf;
 
 export const sdioPackText = (e: SdioEntry) =>
-  e.pack_size > 0 ? `${e.pack} (${bytes2Human(e.pack_size)})` : e.pack;
+  e.pack_size > 0 ? `${e.pack} (${fmtBytes(e.pack_size)})` : e.pack;
 
 // confirm for a fleet-wide approval; classes of the devices it reaches pick
 // the warnings

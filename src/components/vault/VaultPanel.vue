@@ -359,6 +359,7 @@ import {
 } from "@/api/vault";
 import { notifyError, notifySuccess } from "@/utils/notify";
 import { relativeTime } from "@/utils/format";
+import { isWebUrl } from "@/utils/helpers";
 import EmptyState from "@/components/ui/EmptyState.vue";
 import RowActions from "@/components/ui/RowActions.vue";
 import RevealSecret from "@/components/vault/RevealSecret.vue";
@@ -409,14 +410,6 @@ const current = computed(
     documents.value.find((d) => d.id === selectedId.value) ||
     documents.value[0],
 );
-
-function isWebUrl(value) {
-  try {
-    return ["http:", "https:"].includes(new URL(value).protocol);
-  } catch {
-    return false;
-  }
-}
 
 // the list says "admin · 2 days ago", the read pane the full date
 function updated(item, short = false) {

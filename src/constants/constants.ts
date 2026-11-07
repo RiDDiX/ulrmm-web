@@ -13,8 +13,6 @@ export const DASHBOARD_REFRESH_INTERVAL = 30_000;
 
 export const runAsUserToolTip =
   "Run in the context of the logged in user. If no user is logged in, the script will run as SYSTEM";
-export const envVarsLabel =
-  "Environment vars (press Enter after typing each key=value pair)";
 
 const CLIP = " overflow: hidden; text-overflow: ellipsis;";
 

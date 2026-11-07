@@ -13,6 +13,7 @@ import {
   type BaseIso,
   type IsoProgress,
 } from "@/api/deploy";
+import { fmtBytes } from "@/utils/format";
 
 export type IsoState =
   | "ready"
@@ -23,12 +24,8 @@ export type IsoState =
 
 const ACTIVE = ["downloading", "verifying", "inspecting"];
 let timer: ReturnType<typeof setTimeout> | undefined;
-
-export function fmtBytes(n: number) {
-  if (n >= 1024 ** 3) return `${(n / 1024 ** 3).toFixed(1)} GB`;
-  if (n >= 1024 ** 2) return `${(n / 1024 ** 2).toFixed(1)} MB`;
-  return `${Math.round(n / 1024)} KB`;
-}
+// set when a view unmounts, so a refresh still in flight does not re-arm
+let halted = false;
 
 export function fmtRate(bps: number) {
   return `${fmtBytes(bps)}/s`;
@@ -46,13 +43,19 @@ export const useIsoDownloads = defineStore("isoDownloads", () => {
   const loading = ref(false);
   const error = ref("");
 
-  function stop() {
+  function clear() {
     clearTimeout(timer);
     timer = undefined;
   }
 
+  function stop() {
+    halted = true;
+    clear();
+  }
+
   async function refresh() {
-    stop();
+    clear();
+    halted = false;
     loading.value = true;
     try {
       const [lib, prog] = await Promise.all([
@@ -68,8 +71,8 @@ export const useIsoDownloads = defineStore("isoDownloads", () => {
       loading.value = false;
     }
     // a concurrent refresh may have scheduled already
-    stop();
-    if (library.value.some((i) => ACTIVE.includes(i.status))) {
+    clear();
+    if (!halted && library.value.some((i) => ACTIVE.includes(i.status))) {
       timer = setTimeout(refresh, 1000);
     }
   }

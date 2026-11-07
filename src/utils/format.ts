@@ -186,25 +186,6 @@ export function formatCustomFields(
   }));
 }
 
-const SYNTAX_COLORS: Record<string, string> = {
-  "&lt;": "#d4d4d4",
-  "&gt;": "#d4d4d4",
-  "[": "#ffd70a",
-  "]": "#ffd70a",
-  "(": "#87cefa",
-  ")": "#87cefa",
-  "{": "#c586b6",
-  "}": "#c586b6",
-};
-
-export function formatScriptSyntax(syntax: string) {
-  return syntax.replace(/&lt;|&gt;|[<>[\](){}\n]/g, (token) => {
-    if (token === "\n") return "<br />";
-    const shown = token === "<" ? "&lt;" : token === ">" ? "&gt;" : token;
-    return `<span style="color:${SYNTAX_COLORS[shown]}">${shown}</span>`;
-  });
-}
-
 // agent status: one shape + colour + text map shared by every surface that
 // renders online/offline/overdue so they cannot drift out of sync
 export interface AgentStatusMeta {
@@ -465,10 +446,36 @@ const LAPSE_STEPS: [number, string, number][] = [
 
 // "5 minutes ago" for an elapsed time in ms
 export function elapsedText(elapsed: number) {
+  const ms = Math.max(0, elapsed);
+  // rounded first, so 59.6 s reads "1 minute ago" and not "60 seconds ago"
   const [divisor, unit] =
-    LAPSE_STEPS.find(([, , below]) => elapsed < below) ??
+    LAPSE_STEPS.find(([d, , below]) => Math.round(ms / d) * d < below) ??
     LAPSE_STEPS[LAPSE_STEPS.length - 1];
-  return `${Math.round(elapsed / divisor)} ${unit} ago`;
+  const n = Math.round(ms / divisor);
+  return `${n} ${n === 1 ? unit.slice(0, -1) : unit} ago`;
+}
+
+// placeholder for an unknown value
+export const NO_VALUE = "—";
+
+// "3d 4h 12m" for a span in seconds, NO_VALUE when unknown
+export function durationText(seconds?: number | null) {
+  if (typeof seconds !== "number" || !Number.isFinite(seconds) || seconds <= 0)
+    return NO_VALUE;
+  if (seconds < 60) return "<1m";
+  const days = Math.floor(seconds / 86_400);
+  const hours = Math.floor((seconds % 86_400) / 3_600);
+  const minutes = Math.floor((seconds % 3_600) / 60);
+  return [days && `${days}d`, hours && `${hours}h`, `${minutes}m`]
+    .filter(Boolean)
+    .join(" ");
+}
+
+// uptime from a boot time in epoch seconds
+export function uptimeText(bootTime?: number | null) {
+  return bootTime && bootTime > 0
+    ? durationText(Date.now() / 1000 - bootTime)
+    : NO_VALUE;
 }
 
 export function getTimeLapse(unixtime: number) {
@@ -513,7 +520,7 @@ export function formatDateStringwithTimezone(localDateString: string) {
 }
 
 export function capitalize(string: string) {
-  return `${string[0].toUpperCase()}${string.substring(1)}`;
+  return string.charAt(0).toUpperCase() + string.slice(1);
 }
 
 export function formatTableColumnText(text: string) {
@@ -525,17 +532,19 @@ export function truncateText(txt: string, chars: number) {
   return txt.length < chars ? txt : `${txt.substring(0, chars)}...`;
 }
 
-const BYTE_UNITS = ["B", "KB", "MB", "GB", "TB", "PB", "EB", "ZB", "YB"];
+const BYTE_UNITS = ["B", "KB", "MB", "GB", "TB", "PB"];
 
-export function bytes2Human(bytes: number) {
-  if (bytes == 0) return "0B";
-  const exp = Math.floor(Math.log(bytes) / Math.log(1024));
-  return `${parseFloat((bytes / 1024 ** exp).toFixed(2))} ${BYTE_UNITS[exp]}`;
-}
-
-// percent of a memory size given in GB, as a formatted MB figure
-export function convertMemoryToPercent(percent: number, memory: number) {
-  return Math.ceil((percent * (memory * 1024)) / 100).toLocaleString();
+// "1.5 KB", NO_VALUE when the size is unknown
+export function fmtBytes(bytes?: number | null) {
+  if (typeof bytes !== "number" || !Number.isFinite(bytes) || bytes < 0)
+    return NO_VALUE;
+  if (bytes === 0) return "0 B";
+  const exp = Math.min(
+    Math.max(Math.floor(Math.log(bytes) / Math.log(1024)), 0),
+    BYTE_UNITS.length - 1,
+  );
+  const value = bytes / 1024 ** exp;
+  return `${exp ? value.toFixed(1) : Math.round(value)} ${BYTE_UNITS[exp]}`;
 }
 
 const PERIOD_UNITS: [string, number][] = [
@@ -576,14 +585,4 @@ export function convertCamelCase(str: string) {
     index === 0 ? word.toLowerCase() : word.toUpperCase(),
   );
   return cased.replace(/\s+/g, "");
-}
-
-export function copyObjectWithoutKeys<
-  T extends Record<string, unknown>,
-  K extends keyof T,
->(objToCopy: T, keysToExclude: Array<K>): Omit<T, K> {
-  const kept = Object.entries(objToCopy).filter(
-    ([key]) => !keysToExclude.includes(key as K),
-  );
-  return Object.fromEntries(kept) as Omit<T, K>;
 }

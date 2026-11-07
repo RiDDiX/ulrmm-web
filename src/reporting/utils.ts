@@ -8,13 +8,9 @@ import type { QTableColumn } from "quasar";
 import type { LocationQuery, RouteLocationNormalized } from "vue-router";
 import type { ReportDependencies, ReportFormat } from "@/reporting/types";
 
-export const REPORT_FORMATS: readonly ReportFormat[] = [
-  "pdf",
-  "html",
-  "plaintext",
-];
+const REPORT_FORMATS: readonly ReportFormat[] = ["pdf", "html", "plaintext"];
 
-export function isReportFormat(value: unknown): value is ReportFormat {
+function isReportFormat(value: unknown): value is ReportFormat {
   return REPORT_FORMATS.includes(value as ReportFormat);
 }
 
@@ -51,7 +47,7 @@ export function searchWithRaw<T>(raw: (row: T) => unknown[]) {
 }
 
 // plaintext reports are usually csv
-export function reportFileExtension(format: ReportFormat) {
+function reportFileExtension(format: ReportFormat) {
   return format === "plaintext" ? "csv" : format;
 }
 

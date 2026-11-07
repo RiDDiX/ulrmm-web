@@ -13,13 +13,7 @@ import { fetchAgentUpdates, runAgentUpdateInstall } from "@/api/winupdates";
 import { runAgentUpdateScan } from "@/api/winupdates";
 import { notifyError, notifySuccess } from "@/utils/notify";
 import { KMS_ACTIVATION_FILE } from "@/utils/scriptLibrary";
-import {
-  countWillInstall,
-  escapeHtml,
-  installBusyWarning,
-  rebootConsequence,
-  willInstallListHtml,
-} from "@/utils/patchStatus";
+import { installPrompt, rebootPrompt } from "@/utils/patchStatus";
 import ConfirmYesDialog from "@/components/agents/ConfirmYesDialog.vue";
 import RunScript from "@/components/modals/agents/RunScript.vue";
 
@@ -134,13 +128,12 @@ export function useAgentMenuActions(props, title) {
         fetchAgentUpdates(agent.agent_id),
         fetchAgent(agent.agent_id),
       ]);
-      const policy = detail?.effective_patch_policy;
-      plan = {
-        count: countWillInstall(updates, policy),
-        warning: installBusyWarning(updates, policy, agent.plat),
-        list: willInstallListHtml(updates, policy),
-        reboot: policy?.reboot_after_install,
-      };
+      plan = installPrompt(
+        updates,
+        detail?.effective_patch_policy,
+        agent.plat,
+        title.value,
+      );
     } catch (e) {
       console.error(e);
     } finally {
@@ -156,14 +149,12 @@ export function useAgentMenuActions(props, title) {
       });
       return;
     }
-    const risky = ["required", "always"].includes(plan.reboot);
+    // html also applies to the title, which installPrompt escapes
     ask({
-      // html also applies to the title, and anyone who can edit the
-      // device sets its display name
-      title: `Install ${plan.count} approved update${plan.count === 1 ? "" : "s"} on ${escapeHtml(title.value)}?`,
-      message: `${plan.warning}${plan.list}After installation, ${rebootConsequence(plan.reboot)}.`,
+      title: plan.title,
+      message: plan.message,
+      ok: plan.ok,
       html: true,
-      ok: { label: "Install", color: risky ? "negative" : "primary" },
     }).onOk(() =>
       quietly(async () =>
         notifySuccess(await runAgentUpdateInstall(agent.agent_id)),
@@ -173,17 +164,7 @@ export function useAgentMenuActions(props, title) {
 
   function rebootNow() {
     const agent = props.agent;
-    const kind = agent.monitoring_type === "server" ? "Server" : "Workstation";
-    const user = agent.logged_username || agent.logged_in_username;
-    const signedIn =
-      user && user !== "None" && user !== "-"
-        ? ` ${user} is signed in; unsaved work will be lost.`
-        : "";
-    ask({
-      title: `Reboot ${title.value} now?`,
-      message: `${kind}, ${agent.client_name || agent.client} / ${agent.site_name}.${signedIn}`,
-      ok: { label: "Reboot now", color: "negative" },
-    }).onOk(() =>
+    ask(rebootPrompt(agent, title.value)).onOk(() =>
       underSpinner(async () => {
         await agentRebootNow(agent.agent_id);
         notifySuccess(`${title.value} will now be restarted`);

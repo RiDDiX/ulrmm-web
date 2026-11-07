@@ -5,9 +5,13 @@ import { exportFile, Notify } from "quasar";
 
 // one quoted csv field; inner quotes are doubled. Newlines stay as they are
 // (Excel reads them, some stricter parsers do not)
-function csvField(value, format) {
+export function csvField(value, format) {
   const shown = format === undefined ? value : format(value);
-  const text = shown === undefined || shown === null ? "" : String(shown);
+  let text = shown === undefined || shown === null ? "" : String(shown);
+  // Excel runs a cell starting with = + - @ tab or CR as a formula, even
+  // quoted; a number or a lone "-" is not one
+  if (/^([=@\t\r]|[+-].)/.test(text) && !Number.isFinite(Number(text)))
+    text = `'${text}`;
   return `"${text.replaceAll('"', '""')}"`;
 }
 
@@ -24,7 +28,12 @@ export function exportTableToCSV(rows, columns) {
   );
   const content = [header, ...body].join("\r\n");
 
-  if (exportFile("export.csv", content, "text/csv") !== true) {
+  if (
+    exportFile("export.csv", content, {
+      mimeType: "text/csv",
+      byteOrderMark: "\uFEFF",
+    }) !== true
+  ) {
     Notify({
       message: "Browser denied file download...",
       color: "negative",

@@ -415,7 +415,7 @@ const KNOWN_SERVICES = [
   ["YMC", "YMC"],
 ];
 
-export const defaultServiceOptions = KNOWN_SERVICES.map(([value, label]) => ({
+const defaultServiceOptions = KNOWN_SERVICES.map(([value, label]) => ({
   value,
   label,
 })).sort(byLabel);

@@ -24,7 +24,7 @@ export const textColumn = (name, label, extra = {}) => ({
   name,
   label,
   field: name,
-  align: "left",
+  align: /** @type {const} */ ("left"),
   sortable: true,
   ...extra,
 });
@@ -33,6 +33,6 @@ export const textColumn = (name, label, extra = {}) => ({
 export const actionsColumn = {
   name: "actions",
   label: "Actions",
-  align: "right",
+  align: /** @type {const} */ ("right"),
   field: () => "",
 };

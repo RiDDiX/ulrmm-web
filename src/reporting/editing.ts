@@ -15,7 +15,7 @@ function escapeRegExp(text: string) {
 // Markdown line prefixes (headings, lists, quotes). A line that already has
 // exactly `count` units is switched off; any other run of the unit is
 // replaced by the requested one.
-export function togglePrefix(line: string, unit: string, count = 1) {
+function togglePrefix(line: string, unit: string, count = 1) {
   const trimmed = line.replace(/^\s+/, "");
   const u = escapeRegExp(unit);
   const exact = new RegExp(`^(?:${u}){${count}}(?!${u})\\s+`);
@@ -161,7 +161,7 @@ export const BLANK_TABLE = `<table>
 </table>`;
 
 // site__client__name -> "Client Name"
-export function columnLabel(column: string) {
+function columnLabel(column: string) {
   return column
     .split("__")
     .slice(-2)
@@ -172,7 +172,7 @@ export function columnLabel(column: string) {
     .join(" ");
 }
 
-export function tableColumns(analysis: VariableAnalysis, source: string) {
+function tableColumns(analysis: VariableAnalysis, source: string) {
   const prefix = `${source}[0].`;
   return Object.entries(analysis)
     .filter(([path, type]) => path.startsWith(prefix) && type !== "Object")

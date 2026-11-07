@@ -7,7 +7,7 @@ import { SILENT_REQUEST_CONFIG } from "@/constants/constants";
 const baseUrl = "/nix";
 
 // the server's answer when the agent does not know the call yet
-export const AGENT_UPDATE_REQUIRED = "Agent update required";
+const AGENT_UPDATE_REQUIRED = "Agent update required";
 
 // reads show their errors in the tab, so they are not toasted
 export async function fetchNixServices(agent_id) {

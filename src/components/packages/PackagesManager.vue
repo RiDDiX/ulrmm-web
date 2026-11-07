@@ -245,7 +245,7 @@ import PackageForm from "@/components/packages/PackageForm.vue";
 import PackageInstalls from "@/components/packages/PackageInstalls.vue";
 import BaselinesManager from "@/components/baselines/BaselinesManager.vue";
 import { fetchPackages, removePackage } from "@/api/packages";
-import { bytes2Human } from "@/utils/format";
+import { fmtBytes } from "@/utils/format";
 import { notifyError, notifySuccess } from "@/utils/notify";
 import { KIND_LABELS, PLAT_LABELS } from "@/utils/packages";
 
@@ -297,7 +297,7 @@ const columns = [
     label: "Size",
     align: "right",
     field: "size",
-    format: (v) => bytes2Human(v),
+    format: (v) => fmtBytes(v),
     sortable: true,
   },
   { name: "sha256", label: "SHA-256", field: "sha256", align: "left" },

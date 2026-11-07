@@ -78,7 +78,7 @@ export function refTarget(ref?: TimelineRef | null): RefTarget | null {
     : null;
 }
 
-export function countByType(items: TimelineItem[]): Record<string, number> {
+function countByType(items: TimelineItem[]): Record<string, number> {
   const counts: Record<string, number> = Object.create(null);
   for (const item of items) counts[item.type] = (counts[item.type] || 0) + 1;
   return counts;
@@ -101,7 +101,7 @@ function dayKey(d: Date) {
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
 }
 
-export function dayLabel(d: Date, now = new Date()): string {
+function dayLabel(d: Date, now = new Date()): string {
   const yesterday = new Date(now);
   yesterday.setDate(now.getDate() - 1);
   const key = dayKey(d);

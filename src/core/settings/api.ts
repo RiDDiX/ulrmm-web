@@ -10,7 +10,7 @@ import type { Schedule } from "./types";
 
 const SCHEDULES = "/core/schedules/";
 
-export function useSchedule() {
+function useSchedule() {
   const schedules = ref<Schedule[]>([]);
   const isLoading = ref(false);
   const isError = ref(false);

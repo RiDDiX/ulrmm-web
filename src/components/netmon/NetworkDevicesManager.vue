@@ -236,7 +236,7 @@ import {
   removeNetworkDevice,
   testNetworkDevice,
 } from "@/api/netmon";
-import { getTimeLapse } from "@/utils/format";
+import { durationText, getTimeLapse } from "@/utils/format";
 import { notifySuccess } from "@/utils/notify";
 
 defineEmits(Array.from(useDialogPluginComponent.emits));
@@ -341,13 +341,6 @@ function tonerList(row) {
   });
 }
 
-function uptime(seconds) {
-  if (typeof seconds !== "number") return "";
-  const days = Math.floor(seconds / 86400);
-  const hours = Math.floor((seconds % 86400) / 3600);
-  return days ? `${days} d ${hours} h` : `${hours} h`;
-}
-
 // dev + probe results as text only
 function resultText(result) {
   const r = result || {};
@@ -365,7 +358,8 @@ function resultText(result) {
   if (r.snmp?.error) parts.push(`SNMP: ${r.snmp.error}`);
   else if (r.snmp) {
     let text = `SNMP ${r.snmp.sys_name || "answers"}`;
-    if (r.snmp.sys_uptime != null) text += `, up ${uptime(r.snmp.sys_uptime)}`;
+    if (r.snmp.sys_uptime != null)
+      text += `, up ${durationText(r.snmp.sys_uptime)}`;
     if (r.snmp.if_up != null)
       text += `, ${r.snmp.if_up} interfaces up, ${r.snmp.if_down} down`;
     parts.push(text);

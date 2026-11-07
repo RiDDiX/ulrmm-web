@@ -94,7 +94,7 @@ export const SCOPES = [
 const filled = (list) => !!list && list.length > 0;
 
 // agents win over clients; the server reads one of the two
-export function auditQuery(chosen, pagination) {
+function auditQuery(chosen, pagination) {
   const query = { pagination };
   if (filled(chosen.agents)) query.agentFilter = chosen.agents;
   else if (filled(chosen.clients)) query.clientFilter = chosen.clients;

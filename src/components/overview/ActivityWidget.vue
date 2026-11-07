@@ -82,7 +82,10 @@ type FeedItem = TimelineItem & {
   agent?: { agent_id: string; name: string } | null;
 };
 
-defineProps<{ data: { items: FeedItem[] }; widget: Widget }>();
+defineProps<{
+  data: { items: FeedItem[] };
+  widget: Widget & { settings: { types?: string[] } };
+}>();
 
 const store = useStore();
 const formatDate = computed(() => store.getters.formatDate);

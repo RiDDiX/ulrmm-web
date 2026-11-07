@@ -293,12 +293,18 @@ export default function () {
       // null (never set) and "" both mean the Global Settings default
       commit("setDateFormat", data.date_format || data.default_date_format);
     },
-    loadTree({ commit, state }) {
+    loadTree({ commit, dispatch, state }) {
       const router = this.$router;
       setTimeout(async () => {
         try {
           const { data } = await axios.get("/clients/");
-          if (data.length === 0) router.push({ name: "InitialSetup" });
+          // first-run setup is for superusers; on a fresh page load the
+          // dashinfo that carries the flag may still be on its way
+          if (data.length === 0) {
+            if (state.currentVersion == null)
+              await dispatch("getDashInfo", false).catch(() => {});
+            if (state.is_superuser) router.push({ name: "InitialSetup" });
+          }
 
           commit("setTreeError", null);
           const nodes = buildTree(data).sort((a, b) =>
