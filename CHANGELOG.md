@@ -1,5 +1,9 @@
 # Web interface changelog
 
+## 1.08.11.2026 (2026-11-08)
+
+- version only, follows server 1.08.11.2026
+
 ## 5.07.11.2026 (2026-11-07)
 
 - version only, follows server 5.07.11.2026
