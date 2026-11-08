@@ -29,6 +29,7 @@
       :rows="entries"
       :columns="COLUMNS"
       :loading="busy"
+      :pagination-label="pageLabel"
       :style="tableStyle"
       class="tabs-tbl-sticky rmm-table"
       table-class="table-bgcolor"
@@ -254,6 +255,7 @@ const {
   busy,
   ran,
   failure,
+  capped,
   scope,
   chosen,
   paging,
@@ -261,6 +263,9 @@ const {
   load,
   changePage,
 } = useAuditLog(props.agent);
+
+const pageLabel = (first, end, total) =>
+  $q.lang.table.pagination(first, end, capped.value ? `${total}+` : total);
 
 const heading = computed(() => (props.modal ? "Audit Logs" : ""));
 const tableStyle = computed(() => ({

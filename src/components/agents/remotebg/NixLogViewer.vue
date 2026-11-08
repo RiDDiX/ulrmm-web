@@ -364,7 +364,6 @@ export default {
       const key = JSON.stringify(p);
       if (!force && key === lastKey) return;
       const changed = key !== lastKey;
-      lastKey = key;
       // a new filter must not show the previous rows under its labels
       if (changed) {
         lines.value = [];
@@ -380,6 +379,8 @@ export default {
       try {
         const data = await fetchNixLogs(props.agent_id, p);
         if (mine !== seq) return;
+        // only a loaded filter counts as shown, so a failed one is fetched again
+        lastKey = key;
         lines.value = Array.isArray(data?.lines) ? data.lines : [];
         truncated.value = data?.truncated === true;
         error.value = "";

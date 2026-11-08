@@ -139,13 +139,6 @@ function openPrompt(pending: { key: string; uri: string } | null) {
   promptOpen.value = true;
 }
 
-// the credential check returns a token that can only enrol a key, and the
-// server deletes it along with that key. Any later request with it (logout
-// as well) gets a 401, which the interceptor reports as an expired session.
-function forgetEnrolToken() {
-  Object.assign(session, { token: null, username: null, name: null });
-}
-
 function logFailure(err: unknown) {
   const status = (err as { response?: { status?: number } })?.response?.status;
   console.error("login failed", status);
@@ -176,7 +169,7 @@ async function offerNewKey() {
     const setup = await session.setupTotp();
     if (setup) {
       const pending = { key: setup.totp_key, uri: setup.qr_url };
-      forgetEnrolToken();
+      session.forgetEnrolToken();
       openPrompt(pending);
       return;
     }
@@ -186,7 +179,7 @@ async function offerNewKey() {
     openPrompt(null);
   } catch (err) {
     logFailure(err);
-    forgetEnrolToken();
+    session.forgetEnrolToken();
     enrolment.value = null;
     signInError.value = failureText(
       err,

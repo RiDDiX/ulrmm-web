@@ -43,7 +43,7 @@
           icon="refresh"
           label="Refresh"
           :loading="loading"
-          @click="load"
+          @click="load()"
         />
       </div>
     </template>
@@ -63,7 +63,7 @@
             ? 'Nothing matches these filters.'
             : 'Refused certificates, pin mismatches, refused updates and similar events show up here.'
         "
-        @retry="load"
+        @retry="load()"
       />
     </template>
 
@@ -191,18 +191,26 @@ const query = (before?: number): SecurityEventQuery => ({
   limit: PAGE,
 });
 
-async function load() {
+// quiet: a live tick. It leaves pages loaded with Load more alone and keeps
+// the rows when it fails; the request error shows as a toast
+async function load(quiet = false) {
+  const paged = () => events.value.length > PAGE || loadingMore.value;
+  if (quiet && paged()) return;
   const mine = ++request;
-  loading.value = true;
-  error.value = "";
+  if (!quiet) {
+    loading.value = true;
+    error.value = "";
+  }
   try {
     const page = await fetchSecurityEvents(query());
-    if (mine !== request) return;
+    // a Load more started while the tick was in flight
+    if (mine !== request || (quiet && paged())) return;
     events.value = page.results;
     kinds.value = page.kinds;
     hasMore.value = page.results.length === PAGE;
+    error.value = "";
   } catch (e) {
-    if (mine !== request) return;
+    if (mine !== request || quiet) return;
     events.value = [];
     hasMore.value = false;
     error.value =
@@ -234,8 +242,8 @@ async function loadMore() {
   }
 }
 
-watch([severity, kind], load);
-onMounted(load);
+watch([severity, kind], () => load());
+onMounted(() => load());
 </script>
 
 <style scoped>

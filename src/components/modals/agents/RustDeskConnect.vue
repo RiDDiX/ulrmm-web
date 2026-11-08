@@ -113,7 +113,7 @@ import { computed, nextTick, ref, watch } from "vue";
 import { useDialogPluginComponent, useQuasar } from "quasar";
 import { revealAgentRustDeskPassword } from "@/api/rustdesk";
 import { withStepUp } from "@/components/vault/stepUp";
-import { copyOutput } from "@/utils/helpers";
+import { copyOutput, isWebUrl } from "@/utils/helpers";
 import DialogHeader from "@/components/ui/DialogHeader.vue";
 import { deviceName } from "@/utils/deviceName";
 
@@ -155,13 +155,15 @@ function thisOs() {
   return null;
 }
 
-// own os first
+// own os first; only web links end up in an href
 const downloads = computed(() => {
   const os = thisOs();
-  const list = (props.rustdesk.downloads ?? []).map((d) => ({
-    ...d,
-    mine: !!os && d.label.startsWith(os),
-  }));
+  const list = (props.rustdesk.downloads ?? [])
+    .filter((d) => isWebUrl(d.url))
+    .map((d) => ({
+      ...d,
+      mine: !!os && d.label.startsWith(os),
+    }));
   return [...list.filter((d) => d.mine), ...list.filter((d) => !d.mine)];
 });
 

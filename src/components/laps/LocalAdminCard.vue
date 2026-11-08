@@ -49,6 +49,12 @@
       ><span>{{
         state.next_rotation ? formatDate(state.next_rotation) : "Not scheduled"
       }}</span>
+      <template v-if="state.pending_at">
+        <span>New password</span>
+        <span class="text-warning"
+          >Unconfirmed since {{ formatDate(state.pending_at) }}</span
+        >
+      </template>
       <template v-if="state.last_error">
         <span>Last error</span>
         <span class="text-negative">{{ state.last_error }}</span>

@@ -310,7 +310,7 @@ import EmptyState from "@/components/ui/EmptyState.vue";
 import { ensureConsoleStepUp } from "@/composables/accounts";
 import { useChunkedUpload } from "@/composables/chunkedUpload";
 import { stepUpCall } from "@/components/vault/stepUp";
-import { copyOutput } from "@/utils/helpers";
+import { copyOutput, isWebUrl } from "@/utils/helpers";
 import { fmtBytes } from "@/utils/format";
 import { notifySuccess } from "@/utils/notify";
 import { failureText, retryAfterStepUp } from "@/utils/deploy";
@@ -492,6 +492,7 @@ async function download(row: BaseIso) {
       () => isoDownloadLink(row.id),
       () => ensureConsoleStepUp($q),
     );
+    if (!isWebUrl(url)) throw new Error("not a download link");
     openURL(url);
   }, `Downloading ${row.name}`);
   working.value = null;

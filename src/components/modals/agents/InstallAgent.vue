@@ -163,9 +163,10 @@
 
 <script setup>
 import { computed, onMounted, reactive, ref } from "vue";
-import { useQuasar } from "quasar";
+import { exportFile, useQuasar } from "quasar";
 import axios from "axios";
 import { getBaseUrl } from "@/boot/axios";
+import { notifyError } from "@/utils/notify";
 import { useBrandingStore } from "@/stores/branding";
 import * as arch from "@/constants/constants";
 import AgentDownload from "@/components/modals/agents/AgentDownload.vue";
@@ -332,14 +333,10 @@ async function build() {
     const { data } = await axios.post("/agents/installer/", body, {
       responseType: "blob",
     });
-    const link = document.createElement("a");
-    link.href = window.URL.createObjectURL(
-      new Blob([data], { type: "text/plain" }),
-    );
-    link.download = scriptName;
-    link.click();
+    const saved = exportFile(scriptName, data, { mimeType: "text/plain" });
     $q.loading.hide();
-    announceDownload(scriptName);
+    if (saved === true) announceDownload(scriptName);
+    else notifyError("The browser blocked the download.");
   } catch {
     $q.loading.hide();
   }

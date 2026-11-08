@@ -68,8 +68,26 @@ export function closeAllShared() {
   shared.clear();
 }
 
+// 1-2 s, doubling up to 15-30 s; the jitter keeps the open dashboards from
+// all reconnecting in the same second after a server restart
+export function reconnectDelay(attempt: number, random = Math.random()) {
+  const ceiling = Math.min(30_000, 2000 * 2 ** attempt);
+  return Math.round((ceiling * (1 + random)) / 2);
+}
+
 export function useDashWSConnection() {
-  return sharedConnection("dashinfo", { autoReconnect: true });
+  let attempt = 0;
+  return sharedConnection("dashinfo", {
+    autoReconnect: {
+      // read on every close
+      get delay() {
+        return reconnectDelay(attempt++);
+      },
+    },
+    onConnected() {
+      attempt = 0;
+    },
+  });
 }
 
 // connect after step-up. handshake fails before that

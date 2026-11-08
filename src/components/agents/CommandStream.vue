@@ -23,7 +23,6 @@
 
 <script setup lang="ts">
 import {
-  ref,
   watch,
   computed,
   nextTick,
@@ -50,18 +49,18 @@ const emit = defineEmits(["updateOutput", "streamLoaded", "streamClosed"]);
 
 // one id per run ties the socket messages to this component
 const cmdId = uid();
-const { status, data, send, reset, close } = useAgentCmdWSConnection(
-  props.agentId,
-  cmdId,
-);
+const {
+  status,
+  output: outputText,
+  received,
+  done: finished,
+  send,
+  reset,
+  close,
+} = useAgentCmdWSConnection(props.agentId, cmdId);
 
 const streamContainer = useTemplateRef<HTMLElement>("streamContainer");
-const outputText = ref("");
-const hasText = computed(() => !!outputText.value.trim());
-
-// the server sends a done marker with the exit code instead of closing the
-// socket, so that message is what ends a command
-const finished = computed(() => data.value.find((msg) => msg.done));
+const hasText = computed(() => /\S/.test(outputText.value));
 
 const shellLabel = computed(() =>
   props.shell === "custom" && props.custom_shell
@@ -89,10 +88,9 @@ function reportClosed(completed: boolean) {
 }
 
 watch(
-  () => data.value.length,
+  received,
   async (count) => {
     if (!count) return;
-    outputText.value = data.value.map((msg) => msg.output).join("\n");
     emit("updateOutput", outputText.value);
     if (!loadedReported) {
       loadedReported = true;
@@ -111,7 +109,6 @@ watch(status, (now) => now === "CLOSED" && reportClosed(false), {
 });
 
 onMounted(() => {
-  outputText.value = "";
   reset();
   const { cmd, shell, timeout, run_as_user, custom_shell } = props;
   send(

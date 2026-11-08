@@ -190,7 +190,7 @@
 
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, ref } from "vue";
-import { useQuasar } from "quasar";
+import { exportFile, useQuasar } from "quasar";
 import { useStore } from "vuex";
 
 import DialogHeader from "@/components/ui/DialogHeader.vue";
@@ -367,13 +367,8 @@ async function download(b: Backup) {
   if (!(await ensureConsoleStepUp($q))) return;
   downloading.value = b.name;
   try {
-    const blob = await downloadBackup(b);
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = b.name;
-    a.click();
-    URL.revokeObjectURL(url);
+    if (exportFile(b.name, await downloadBackup(b)) !== true)
+      notifyError("The browser blocked the download.");
   } catch {
     // the axios boot shows the error
   } finally {

@@ -91,7 +91,7 @@ function stopLive() {
 
 watch(live, (on) => {
   stopLive();
-  if (on) timer = setInterval(() => eventsRef.value?.load(), LIVE_MS);
+  if (on) timer = setInterval(() => eventsRef.value?.load(true), LIVE_MS);
 });
 
 function fitPage(offset: number, height: number) {

@@ -18,6 +18,14 @@ type CheckCredentialsResponse = {
 type TOTPSetupResponse = { qr_url: string; totp_key: string };
 type SignedIn = { token: string; username: string; name: string };
 
+// the token from the password check of an account without a TOTP key. It only
+// allows enrolling one, so it stays in memory: in sessionStorage it would read
+// as a signed-in tab and open the dashboard socket with it
+let enrolToken: string | null = null;
+const asEnrolee = () => ({
+  headers: { Authorization: `Token ${enrolToken}` },
+});
+
 // per tab: each value sits in sessionStorage under its own key
 const tabStored = (key: string) =>
   useStorage<string | null>(key, null, sessionStorage);
@@ -50,6 +58,7 @@ export const useAuthStore = defineStore("auth", {
   },
   actions: {
     remember(data: SignedIn, provider: string | null) {
+      enrolToken = null;
       this.username = data.username;
       this.name = data.name;
       this.token = data.token;
@@ -64,7 +73,7 @@ export const useAuthStore = defineStore("auth", {
         "/v2/checkcreds/",
         credentials,
       );
-      if (!data.totp) this.token = data.token;
+      enrolToken = data.totp ? null : data.token;
       return data;
     },
     async login(credentials: LoginRequest) {
@@ -90,6 +99,9 @@ export const useAuthStore = defineStore("auth", {
     async logout() {
       // the local sign-out happens even when the server is unreachable
       if (this.token !== null) await axios.post("/logout/").catch(() => {});
+      else if (enrolToken !== null)
+        await axios.post("/logout/", null, asEnrolee()).catch(() => {});
+      enrolToken = null;
       this.$patch({
         token: null,
         username: null,
@@ -102,8 +114,14 @@ export const useAuthStore = defineStore("auth", {
     // false when the account already has a key
     setupTotp(): Promise<TOTPSetupResponse | false> {
       return axios
-        .post("/accounts/users/setup_totp/")
+        .post("/accounts/users/setup_totp/", null, asEnrolee())
         .then((response) => response.data);
+    },
+    // the server deletes the enrol token along with the key setup. Any later
+    // request with it (logout as well) gets a 401, which the interceptor
+    // reports as an expired session
+    forgetEnrolToken() {
+      enrolToken = null;
     },
   },
 });

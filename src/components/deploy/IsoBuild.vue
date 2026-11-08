@@ -316,7 +316,7 @@ import HelpTip from "@/components/ui/HelpTip.vue";
 import RmmSelect from "@/components/ui/RmmSelect.vue";
 import { fmtEta, fmtRate, useIsoDownloads } from "@/stores/isoDownloads";
 import { fmtBytes } from "@/utils/format";
-import { copyOutput } from "@/utils/helpers";
+import { copyOutput, isWebUrl } from "@/utils/helpers";
 import { notifySuccess } from "@/utils/notify";
 import { failureText, retryAfterStepUp } from "@/utils/deploy";
 import {
@@ -523,6 +523,7 @@ async function download() {
       () => isoDownloadLink(iso),
       () => ensureConsoleStepUp($q),
     );
+    if (!isWebUrl(url)) throw new Error("not a download link");
     openURL(url);
     notifySuccess("Download started");
   } catch (e) {

@@ -1,12 +1,13 @@
 // SPDX-FileCopyrightText: 2026 RiDDiX / Maximilian Hammerschmid
 // SPDX-License-Identifier: FSL-1.1-ALv2
 
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   capitalize,
   durationText,
   elapsedText,
   fmtBytes,
+  getNextAgentUpdateTime,
   uptimeText,
   NO_VALUE,
 } from "@/utils/format";
@@ -55,5 +56,21 @@ describe("durationText", () => {
 describe("uptimeText", () => {
   it("is a dash without a boot time", () => {
     expect(uptimeText(null)).toBe(NO_VALUE);
+  });
+});
+
+describe("getNextAgentUpdateTime", () => {
+  afterEach(() => vi.useRealTimers());
+  const at = (time: string) => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date(`2026-03-02T${time}`));
+    const next = getNextAgentUpdateTime();
+    return `${next.getHours()}:${next.getMinutes()}`;
+  };
+
+  it("is :35 of this hour before it, of the next one from :35 on", () => {
+    expect(at("10:34:00")).toBe("10:35");
+    expect(at("10:35:20")).toBe("11:35");
+    expect(at("10:36:00")).toBe("11:35");
   });
 });

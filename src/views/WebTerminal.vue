@@ -197,7 +197,7 @@ onMounted(() => {
 
 onBeforeUnmount(() => {
   term.dispose();
+  // closing the socket is enough: the server kills the shell on disconnect
   close();
-  sendAction("rmmcli.disconnect");
 });
 </script>

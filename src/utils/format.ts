@@ -497,7 +497,7 @@ export function formatDate(
 // callers apply the user's date format (store.getters.formatDate)
 export function getNextAgentUpdateTime(): Date {
   const next = new Date();
-  if (next.getMinutes() > 35) next.setHours(next.getHours() + 1);
+  if (next.getMinutes() >= 35) next.setHours(next.getHours() + 1);
   next.setMinutes(35);
   return next;
 }

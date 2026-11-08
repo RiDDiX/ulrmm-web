@@ -1,5 +1,15 @@
 # Web interface changelog
 
+## 2.08.11.2026 (2026-11-08)
+
+- command output streams append line by line and keep the last 5000 lines, so a long run no longer freezes the tab
+- security events: the live refresh keeps loaded pages and the rows on a failed tick
+- download links from the server are opened only when they are web URLs; downloads share one helper
+- ISO download progress ignores stale answers and backs off while the server is unreachable; the next agent update time no longer points into the past
+- device table tooltips tolerate rows without checks; the dashboard socket reconnects with a growing, jittered delay
+- the enrolment-only token is kept in memory until the login completes; the log viewer retries a failed load
+- LAPS shows an unconfirmed password with its time and a reveal button
+
 ## 1.08.11.2026 (2026-11-08)
 
 - version only, follows server 1.08.11.2026

@@ -101,7 +101,7 @@ export function statusTooltip(row) {
 export function checksTooltip(row) {
   if (row.maintenance_mode)
     return "Maintenance mode enabled — alerts are suppressed";
-  const { total, failing, warning, info, pending = 0 } = row.checks;
+  const { total, failing, warning, info, pending = 0 } = row.checks ?? {};
   if (!total) return "No checks configured for this device";
   const counts = [
     [failing, "error"],

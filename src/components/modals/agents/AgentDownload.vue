@@ -17,7 +17,7 @@
         </p>
         <q-btn
           type="a"
-          :href="info.data.url"
+          :href="isWebUrl(info.data.url) ? info.data.url : undefined"
           icon="download"
           label="Download agent"
           color="primary"
@@ -85,6 +85,7 @@
 import { computed } from "vue";
 import { copyToClipboard } from "quasar";
 import DialogHeader from "@/components/ui/DialogHeader.vue";
+import { isWebUrl } from "@/utils/helpers";
 import { notifySuccess } from "@/utils/notify";
 
 defineOptions({ name: "AgentDownload" });

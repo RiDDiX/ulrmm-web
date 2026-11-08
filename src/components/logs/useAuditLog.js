@@ -115,6 +115,8 @@ export function useAuditLog(agentId) {
   const busy = ref(false);
   const ran = ref(false);
   const failure = ref("");
+  // the server stops counting past its cap and says so
+  const capped = ref(false);
   const scope = ref("clients");
   const chosen = reactive({
     time: 7,
@@ -194,6 +196,7 @@ export function useAuditLog(agentId) {
       const reply = await fetchAuditLog(auditQuery(chosen, paging.value));
       entries.value = reply.audit_logs;
       paging.value.rowsNumber = reply.total;
+      capped.value = reply.total_capped === true;
     } catch (err) {
       failure.value =
         err?.response?.status === 403
@@ -230,6 +233,7 @@ export function useAuditLog(agentId) {
     busy,
     ran,
     failure,
+    capped,
     scope,
     chosen,
     paging,

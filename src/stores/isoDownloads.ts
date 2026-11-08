@@ -26,6 +26,8 @@ const ACTIVE = ["downloading", "verifying", "inspecting"];
 let timer: ReturnType<typeof setTimeout> | undefined;
 // set when a view unmounts, so a refresh still in flight does not re-arm
 let halted = false;
+// only the newest reply counts; an older one would show stale progress
+let seq = 0;
 
 export function fmtRate(bps: number) {
   return `${fmtBytes(bps)}/s`;
@@ -53,28 +55,37 @@ export const useIsoDownloads = defineStore("isoDownloads", () => {
     clear();
   }
 
-  async function refresh() {
+  async function poll() {
     clear();
-    halted = false;
+    const mine = ++seq;
+    let failed = false;
     loading.value = true;
     try {
       const [lib, prog] = await Promise.all([
         fetchIsoLibrary(),
         fetchIsoProgress(),
       ]);
+      if (mine !== seq) return;
       library.value = lib;
       progress.value = Object.fromEntries(prog.map((p) => [p.id, p]));
       error.value = "";
     } catch (e) {
+      if (mine !== seq) return;
+      failed = true;
       error.value = e instanceof Error ? e.message : String(e);
     } finally {
-      loading.value = false;
+      if (mine === seq) loading.value = false;
     }
-    // a concurrent refresh may have scheduled already
-    clear();
     if (!halted && library.value.some((i) => ACTIVE.includes(i.status))) {
-      timer = setTimeout(refresh, 1000);
+      timer = setTimeout(poll, failed ? 5000 : 1000);
     }
+  }
+
+  // a view starts polling here; the actions below only refresh, so one that
+  // returns after the view is gone does not start it again
+  function refresh() {
+    halted = false;
+    return poll();
   }
 
   async function start(
@@ -82,18 +93,18 @@ export const useIsoDownloads = defineStore("isoDownloads", () => {
     opts?: { sha256?: string; sha256_url?: string | null; target?: string },
   ) {
     const row = await startIsoDownload({ url, ...opts });
-    await refresh();
+    await poll();
     return row;
   }
 
   async function cancel(id: number) {
     await cancelIsoDownload(id);
-    await refresh();
+    await poll();
   }
 
   async function retry(id: number) {
     await retryIsoDownload(id);
-    await refresh();
+    await poll();
   }
 
   function percent(p: IsoProgress | null | undefined) {
