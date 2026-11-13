@@ -180,7 +180,7 @@
 </template>
 
 <script setup>
-import { ref, computed } from "vue";
+import { ref, computed, onBeforeUnmount, watch } from "vue";
 import { useQuasar } from "quasar";
 import { copyOutput } from "@/utils/helpers";
 import { formatSoftwareDate, sortSoftware } from "@/utils/software";
@@ -311,6 +311,11 @@ const exportColumns = computed(() => {
 const isBlank = (value) =>
   value === null || value === undefined || value === "";
 
+let reloadTimer = 0;
+const clearReload = () => window.clearTimeout(reloadTimer);
+watch(selectedAgent, clearReload);
+onBeforeUnmount(clearReload);
+
 async function refreshFromAgent() {
   const agentId = selectedAgent.value;
   loading.value = true;
@@ -322,7 +327,8 @@ async function refreshFromAgent() {
       notifySuccess(result);
       // other platforms only queue the refresh; one reload later catches a
       // fast check-in without polling
-      window.setTimeout(() => {
+      clearReload();
+      reloadTimer = window.setTimeout(() => {
         if (agentId === selectedAgent.value) void load();
       }, 8000);
     }
@@ -379,12 +385,21 @@ function openUninstall(row) {
   const agentId = selectedAgent.value;
 
   if (windows.value) {
-    const msi = row.uninstall.toLowerCase().includes("msiexec");
+    const lower = row.uninstall.toLowerCase();
+    // any UI switch already there wins over /qn
+    const hasUi = ["/qn", "/qb", "/qr", "/qf", "/quiet", "/passive"].some(
+      (flag) => lower.includes(flag),
+    );
+    const silent = lower.includes("msiexec")
+      ? [...(hasUi ? [] : ["/qn"]), "/norestart"].filter(
+          (flag) => !lower.includes(flag),
+        )
+      : [];
     $q.dialog({
       component: UninstallSoftware,
       componentProps: {
         softwareName: row.name,
-        initialUninstallString: row.uninstall + (msi ? " /qn /norestart" : ""),
+        initialUninstallString: [row.uninstall, ...silent].join(" "),
       },
     }).onOk((data) =>
       uninstall(agentId, {

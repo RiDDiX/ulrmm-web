@@ -151,6 +151,7 @@
 import { computed, ref } from "vue";
 import { useQuasar } from "quasar";
 import { fetchAgentHistory } from "@/api/agents";
+import { historyOutcome } from "@/utils/appupdates";
 import { formatTableColumnText } from "@/utils/format";
 import { notifyInfo } from "@/utils/notify";
 import ScriptOutput from "@/components/checks/ScriptOutput.vue";
@@ -175,13 +176,7 @@ function resultOf(row) {
       ? { label: "Output received", icon: "subject", color: null }
       : { label: "No output", icon: "remove", color: null };
   }
-  // appupdates/tasks.py writes one "<app> <from> -> <to>: ok|failed" line
-  // per app into results
-  if (row.type === "app_update") {
-    return /: failed$/m.test(row.results || "")
-      ? { label: "Failed", icon: "error", color: "negative" }
-      : { label: "Success", icon: "check_circle", color: "positive" };
-  }
+  if (row.type === "app_update") return historyOutcome(row.results);
   const code = row.script_results?.retcode;
   if (code === null || code === undefined)
     return { label: "Unknown", icon: "help_outline", color: null };

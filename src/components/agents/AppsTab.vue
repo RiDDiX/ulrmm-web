@@ -199,6 +199,12 @@
             class="rmm-pill rmm-pill--neutral q-ml-xs"
             >Excluded globally</span
           >
+          <div
+            v-if="scope.row.state === 'updating' && scope.row.last_error"
+            class="text-caption rmm-muted"
+          >
+            {{ scope.row.last_error.trim().split("\n").pop() }}
+          </div>
           <q-tooltip v-if="scope.row.last_error">{{
             scope.row.last_error
           }}</q-tooltip>
@@ -289,6 +295,9 @@ import {
   pendingRows,
   POLICY_OPTIONS,
   stateMeta,
+  updatePollStart,
+  UPDATE_POLL_MS,
+  UPDATE_POLL_LIMIT_MS,
   type AppPolicy,
   type AppUpdate,
 } from "@/utils/appupdates";
@@ -317,6 +326,7 @@ const selected = ref<AppUpdate[]>([]);
 const pagination = ref({ rowsPerPage: 0, sortBy: null, descending: false });
 let generation = 0;
 let followUp = 0;
+let pollStartedAt: number | null = null;
 
 // unknown counts as online, the server refuses an offline agent itself
 const availability = computed(() =>
@@ -370,6 +380,20 @@ function show(result: unknown) {
   error.value = null;
 }
 
+function pollAgain(agentId: typeof selectedAgent.value) {
+  window.clearTimeout(followUp);
+  followUp = window.setTimeout(() => {
+    if (agentId === selectedAgent.value) void load();
+  }, UPDATE_POLL_MS);
+}
+
+// an update run keeps rows at updating for up to 30 min
+function schedulePoll(agentId: typeof selectedAgent.value) {
+  window.clearTimeout(followUp);
+  pollStartedAt = updatePollStart(view.value.rows, pollStartedAt, Date.now());
+  if (pollStartedAt !== null) pollAgain(agentId);
+}
+
 async function load() {
   const agentId = selectedAgent.value;
   if (!agentId) return;
@@ -378,9 +402,18 @@ async function load() {
   try {
     const result = await fetchAppUpdates(agentId);
     if (request !== generation) return;
+    // ticks set while an update runs survive the reload
+    const ticked = new Set(selected.value.map((r) => r.app_id));
     show(result);
+    selected.value = view.value.rows.filter((r) => ticked.has(r.app_id));
+    schedulePoll(agentId);
   } catch (e) {
-    if (request === generation) error.value = e as typeof error.value;
+    if (request !== generation) return;
+    error.value = e as typeof error.value;
+    // one failed request does not end a running poll; the rows shown are stale
+    if (pollStartedAt === null) return;
+    if (Date.now() - pollStartedAt < UPDATE_POLL_LIMIT_MS) pollAgain(agentId);
+    else pollStartedAt = null;
   } finally {
     if (request === generation) loading.value = false;
   }
@@ -412,10 +445,8 @@ async function apply(ids: string[], kind: "selected" | "all") {
       `Updating ${r?.queued?.length ?? 0} app(s)` +
         (skipped ? `, ${skipped} skipped` : ""),
     );
-    window.clearTimeout(followUp);
-    followUp = window.setTimeout(() => {
-      if (agentId === selectedAgent.value) void load();
-    }, 5000);
+    if (agentId !== selectedAgent.value) return;
+    pollStartedAt = Date.now();
     await load();
   } catch {
     // the response interceptor shows the error
@@ -452,13 +483,18 @@ async function savePolicy(value: AppPolicy) {
 watch(selectedAgent, (agentId) => {
   generation += 1;
   window.clearTimeout(followUp);
+  pollStartedAt = null;
   data.value = null;
   error.value = null;
   if (agentId) void load();
 });
 
 onMounted(load);
-onBeforeUnmount(() => window.clearTimeout(followUp));
+onBeforeUnmount(() => {
+  // a load still running must not start a new timer
+  generation += 1;
+  window.clearTimeout(followUp);
+});
 </script>
 
 <style scoped>

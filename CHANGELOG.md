@@ -1,5 +1,13 @@
 # Web interface changelog
 
+## 1.13.11.2026 (2026-11-13)
+
+- app update history: "Timed out" and "Not started" are shown as such instead of "Success"; the device quick panel shows app updates with their own icon, title and result
+- Apps tab: reloads every 15 seconds while an update is running, at most 35 minutes, keeps the ticked rows and survives a failed request; a timed-out update shows its note under the state
+- the device quick panel loads only the latest ten history rows
+- RustDesk connect opens only rustdesk: and https: links
+- Software tab: the reload timer is cleared on device change; the silent uninstall string no longer doubles /qn or /norestart and leaves an existing UI switch alone
+
 ## 2.08.11.2026 (2026-11-08)
 
 - command output streams append line by line and keep the last 5000 lines, so a long run no longer freezes the tab

@@ -21,6 +21,15 @@ function versionKey(v: string) {
 export const isWebUrl = (value: string | null | undefined) =>
   /^https?:\/\//i.test(value || "");
 
+// the server's uri goes into an href: only the client's own scheme or a web link
+export function rustDeskLink(uri: string) {
+  try {
+    return ["rustdesk:", "https:"].includes(new URL(uri).protocol);
+  } catch {
+    return false;
+  }
+}
+
 export function isNewer(a: string, b: string) {
   const ka = versionKey(a);
   const kb = versionKey(b);

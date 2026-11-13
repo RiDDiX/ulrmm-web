@@ -279,6 +279,7 @@ import {
   MESH_OFFLINE_WARNING,
 } from "@/utils/format";
 import { deviceName } from "@/utils/deviceName";
+import { historyActivityRow } from "@/utils/appupdates";
 import { statusTooltip as rowStatusTooltip } from "@/components/agentTableRows";
 import AgentActionMenu from "@/components/agents/AgentActionMenu.vue";
 import EmptyState from "@/components/ui/EmptyState.vue";
@@ -448,12 +449,6 @@ const meters = computed(() => {
   ];
 });
 
-const HISTORY_ICONS = {
-  cmd_run: "terminal",
-  script_run: "code",
-  task_run: "task_alt",
-};
-
 // alerts and history for this device, newest first, ten rows
 const activity = computed(() => {
   const rows = [
@@ -465,27 +460,7 @@ const activity = computed(() => {
       title: a.message,
       caption: `Alert · ${a.severity}`,
     })),
-    ...history.value.map((h) => {
-      const retcode = h.script_results?.retcode;
-      const result =
-        h.type === "cmd_run"
-          ? h.results
-            ? "output received"
-            : "no output"
-          : retcode === 0
-            ? "success"
-            : retcode == null
-              ? "unknown result"
-              : `failed (exit ${retcode})`;
-      return {
-        key: `history-${h.id}`,
-        time: h.time,
-        icon: HISTORY_ICONS[h.type] || "history",
-        state: retcode > 0 ? "negative" : "neutral",
-        title: h.type === "cmd_run" ? h.command : h.script_name,
-        caption: `${h.type === "cmd_run" ? "Command" : h.type === "task_run" ? "Task" : "Script"} by ${h.username || "system"} · ${result}`,
-      };
-    }),
+    ...history.value.map(historyActivityRow),
   ];
   return rows
     .filter((r) => r.time)
@@ -574,7 +549,7 @@ async function loadActivity() {
   // can fill the tab alone. Alerts: this device's last 30 days, resolved
   // included
   const [rows, own] = await Promise.allSettled([
-    fetchAgentHistory(id, {}, SILENT_REQUEST_CONFIG),
+    fetchAgentHistory(id, { newest: 10 }, SILENT_REQUEST_CONFIG),
     axios.patch(
       "/alerts/",
       { timeFilter: 30, agentFilter: id },

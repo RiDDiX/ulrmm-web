@@ -113,7 +113,8 @@ import { computed, nextTick, ref, watch } from "vue";
 import { useDialogPluginComponent, useQuasar } from "quasar";
 import { revealAgentRustDeskPassword } from "@/api/rustdesk";
 import { withStepUp } from "@/components/vault/stepUp";
-import { copyOutput, isWebUrl } from "@/utils/helpers";
+import { copyOutput, isWebUrl, rustDeskLink } from "@/utils/helpers";
+import { notifyError } from "@/utils/notify";
 import DialogHeader from "@/components/ui/DialogHeader.vue";
 import { deviceName } from "@/utils/deviceName";
 
@@ -195,6 +196,13 @@ async function reveal() {
       `rustdesk://connection/new/${encodeURIComponent(
         props.rustdesk.rustdesk_id,
       )}?password=${encodeURIComponent(data.password)}`;
+    if (!rustDeskLink(link)) {
+      password = "";
+      link = "";
+      notifyError("The server sent a connection link RustDesk cannot open.");
+      step.value = "failed";
+      return;
+    }
     step.value = "open";
     openLink();
   } catch (e) {

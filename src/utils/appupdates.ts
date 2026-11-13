@@ -95,3 +95,99 @@ export function pendingRows(rows: AppUpdate[]): AppUpdate[] {
       !r.excluded_globally,
   );
 }
+
+export const UPDATE_POLL_MS = 15_000;
+// the server gives one upgrade call 30 min before it marks it timed out
+export const UPDATE_POLL_LIMIT_MS = 35 * 60_000;
+
+// start time of the reload loop while a row is updating, null to stop it
+export function updatePollStart(
+  rows: { state: string; last_error?: string }[],
+  startedAt: number | null,
+  now: number,
+): number | null {
+  // the server sets last_error on an updating row only when the run timed out
+  if (!rows.some((r) => r.state === "updating" && !r.last_error)) return null;
+  const start = startedAt ?? now;
+  return now - start < UPDATE_POLL_LIMIT_MS ? start : null;
+}
+
+export interface HistoryOutcome {
+  label: string;
+  icon: string;
+  color: string | null;
+}
+
+// appupdates/tasks.py writes one "<app> <from> -> <to>: <outcome>" line per
+// app, failed and timed out followed by the installer's tail lines
+const OUTCOME_LINE = / -> .*: (ok|failed|timed out|not started)$/gm;
+
+export function historyOutcome(results: unknown): HistoryOutcome {
+  const text = typeof results === "string" ? results : "";
+  const seen = new Set([...text.matchAll(OUTCOME_LINE)].map((m) => m[1]));
+  if (seen.has("failed"))
+    return { label: "Failed", icon: "error", color: "negative" };
+  if (seen.has("timed out"))
+    return { label: "Timed out", icon: "timer_off", color: "warning" };
+  if (seen.has("not started"))
+    return { label: "Not started", icon: "do_not_disturb_on", color: null };
+  if (seen.has("ok"))
+    return { label: "Success", icon: "check_circle", color: "positive" };
+  return { label: "Unknown", icon: "help_outline", color: null };
+}
+
+const HISTORY_ICONS: Record<string, string> = {
+  cmd_run: "terminal",
+  script_run: "code",
+  task_run: "task_alt",
+  app_update: "system_update_alt",
+};
+
+export interface HistoryRow {
+  id: number;
+  time: string;
+  type: string;
+  command?: string | null;
+  script_name?: string | null;
+  username?: string | null;
+  results?: string | null;
+  script_results?: { retcode?: number | null } | null;
+}
+
+// one agent history row as a line of the device quick panel's Activity list
+export function historyActivityRow(h: HistoryRow) {
+  const retcode = h.script_results?.retcode;
+  const by = `by ${h.username || "system"}`;
+  if (h.type === "app_update") {
+    const outcome = historyOutcome(h.results);
+    return {
+      key: `history-${h.id}`,
+      time: h.time,
+      icon: HISTORY_ICONS.app_update,
+      state:
+        outcome.color === "negative" || outcome.color === "warning"
+          ? outcome.color
+          : "neutral",
+      title: h.command,
+      caption: `App update ${by} · ${outcome.label.toLowerCase()}`,
+    };
+  }
+  const result =
+    h.type === "cmd_run"
+      ? h.results
+        ? "output received"
+        : "no output"
+      : retcode === 0
+        ? "success"
+        : retcode == null
+          ? "unknown result"
+          : `failed (exit ${retcode})`;
+  return {
+    key: `history-${h.id}`,
+    time: h.time,
+    icon: HISTORY_ICONS[h.type] || "history",
+    state: retcode != null && retcode > 0 ? "negative" : "neutral",
+    title: h.type === "cmd_run" ? h.command : h.script_name,
+    caption: `${h.type === "cmd_run" ? "Command" : h.type === "task_run" ? "Task" : "Script"} ${by} · ${result}`,
+  };
+}
