@@ -1,5 +1,9 @@
 # Web interface changelog
 
+## 2.14.11.2026 (2026-11-14)
+
+- No changes here; version kept in step with the other components
+
 ## 1.14.11.2026 (2026-11-14)
 
 - No changes here; version kept in step with the other components
