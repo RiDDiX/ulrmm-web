@@ -142,6 +142,8 @@
             no-caps
             color="negative"
             label="Delete"
+            :loading="busy[src.id] === 'delete'"
+            :disable="!!busy[src.id]"
             @click="remove(src)"
           />
         </q-card-section>
@@ -167,7 +169,8 @@
             <div class="text-subtitle2 q-mb-xs">What the import adds</div>
             <div class="text-caption rmm-muted q-mb-sm">
               Existing entries with the same name stay as they are; only empty
-              custom field values are filled in. Running it again adds nothing.
+              custom field values are filled in. A new run adds only what is new
+              and completes the policies it imported earlier.
             </div>
             <q-list dense bordered separator>
               <q-expansion-item
@@ -183,6 +186,7 @@
                       v-model="parts[src.id]"
                       :val="p.part"
                       dense
+                      :aria-label="p.label"
                       @click.stop
                     />
                   </q-item-section>
@@ -252,10 +256,13 @@
                 v-for="g in done[src.id].skipped"
                 :key="g.label"
                 dense
-                :label="`${g.label}: ${g.items.length} left out`"
+                :label="`${g.label}: ${g.total} left out`"
                 header-class="text-warning"
               >
-                <SkippedList :items="g.items" />
+                <SkippedList
+                  :items="g.items"
+                  :more="g.total - g.items.length"
+                />
               </q-expansion-item>
             </q-list>
           </q-card-section>
@@ -459,14 +466,16 @@ import {
   importSummary,
   partNotes,
   partsOffered,
+  readOutcome,
   removalAskable,
   removalView,
   removalWaiting,
+  saveErrors,
   skippedByPart,
   withoutSiteText,
 } from "@/utils/importers";
 import { relativeTime } from "@/utils/format";
-import { notifyError, notifySuccess } from "@/utils/notify";
+import { notifyError, notifySuccess, notifyWarning } from "@/utils/notify";
 import { SILENT_REQUEST_CONFIG } from "@/constants/constants";
 
 const $q = useQuasar();
@@ -579,8 +588,11 @@ const devices = reactive({});
 const selected = reactive({});
 const removeOld = reactive({});
 const timers = new Set();
+let unmounted = false;
 
+// refuses once the page is left, so the polling loops end
 function after(ms, fn) {
+  if (unmounted) return;
   const t = setTimeout(() => {
     timers.delete(t);
     fn();
@@ -653,11 +665,14 @@ async function save() {
     form.value = null;
     await load();
   } catch (e) {
-    const data = e?.response?.data || {};
-    for (const [k, v] of Object.entries(data))
-      errs[k] = String(Array.isArray(v) ? v[0] : v);
-    if (!Object.keys(errs).length)
-      notifyError("The source could not be saved.");
+    const { fields, message } = saveErrors(e?.response?.data, [
+      "name",
+      "url",
+      "secrets",
+    ]);
+    Object.assign(errs, fields);
+    if (message || !Object.keys(fields).length)
+      notifyError(message || "The source could not be saved.");
   }
   saving.value = false;
 }
@@ -670,10 +685,17 @@ function remove(src) {
     cancel: true,
     ok: { label: "Delete", color: "negative", flat: true },
   }).onOk(async () => {
-    await deleteSource(src.id);
-    delete plans[src.id];
-    delete devices[src.id];
-    await load();
+    if (busy[src.id]) return;
+    busy[src.id] = "delete";
+    try {
+      await deleteSource(src.id);
+      delete plans[src.id];
+      delete devices[src.id];
+      await load();
+    } catch {
+      // shown by the axios boot
+    }
+    busy[src.id] = "";
   });
 }
 
@@ -681,7 +703,12 @@ async function loadPlan(src) {
   try {
     plans[src.id] = await fetchPlan(src.id);
     parts[src.id] ??= partsOffered(src.parts)
-      .filter((p) => p.part && plans[src.id][p.key]?.new_count)
+      .filter(
+        (p) =>
+          p.part &&
+          (plans[src.id][p.key]?.new_count ||
+            plans[src.id][p.key]?.to_complete_count),
+      )
       .map((p) => p.part);
   } catch {
     // the error toast comes from the axios boot
@@ -702,37 +729,35 @@ async function loadDevices(src) {
   }
 }
 
-// the read runs in the background; done when last_fetch or last_error moves
+const sleep = (ms) => new Promise((resolve) => after(ms, resolve));
+
+// the read runs in the background; poll until it is done or failed
 async function read(src) {
   busy[src.id] = "fetch";
-  const before = { fetch: src.last_fetch, err: src.last_error };
-  await readSource(src.id);
-  let tries = 0;
-  const poll = async () => {
-    const now = await fetchSource(src.id).catch(() => null);
-    tries += 1;
-    if (
-      now &&
-      (now.last_fetch !== before.fetch ||
-        (now.last_error && now.last_error !== before.err))
-    ) {
+  try {
+    // another tab or user may have read it since the list loaded
+    const before = (await fetchSource(src.id).catch(() => src)).last_fetch;
+    // a 409 (a read or an import already runs) is shown by the axios boot
+    await readSource(src.id);
+    for (let tries = 0; tries <= 150; tries++) {
+      await sleep(tries ? 2000 : 1000);
+      const now = await fetchSource(src.id).catch(() => null);
+      const outcome = readOutcome(before, now);
+      if (outcome === "running") continue;
       Object.assign(src, now);
-      busy[src.id] = "";
-      if (now.last_error) notifyError(now.last_error);
+      if (outcome === "failed") notifyError(now.last_error);
       else {
         delete parts[src.id];
         await loadPlan(src);
       }
       return;
     }
-    if (tries > 150) {
-      busy[src.id] = "";
-      notifyError("Reading the source takes too long; refresh later.");
-      return;
-    }
-    after(2000, poll);
-  };
-  after(1000, poll);
+    notifyError("Reading the source takes too long; refresh later.");
+  } catch {
+    // shown by the axios boot
+  } finally {
+    busy[src.id] = "";
+  }
 }
 
 function partRows(src) {
@@ -751,7 +776,7 @@ async function doImport(src) {
     const r = await runImport(src.id, parts[src.id]);
     done[src.id] = {
       text: importSummary(r, parts[src.id]),
-      skipped: skippedByPart(r.skipped),
+      skipped: skippedByPart(r.skipped, r.skipped_total),
     };
     notifySuccess("Import finished");
     delete parts[src.id];
@@ -793,7 +818,7 @@ function removeWarning(src) {
     "This happens only while the device is online on both servers and both show the same machine: the same serial number, or the same public and local address. " +
     "While a device is offline on the other server it keeps its old agent; the removal is tried again for up to 7 days and then given up. " +
     "Until it is sent it can be withdrawn; once sent it cannot be undone. " +
-    "On Windows the old uninstaller also removes the remote-control agent; it is repaired here a few minutes later."
+    "The old uninstaller can also remove the remote-control agent; it is repaired here 5 minutes after the removal and, if that fails, tried again hourly for up to 7 days."
   );
 }
 
@@ -884,10 +909,19 @@ function doRemoveOld(src) {
   });
 }
 
-// the server clears the state of queued devices; poll until each has one again
+// the server clears the state of queued devices and the source's error;
+// poll until each device has a state again, or the send failed as a whole
 function watchSend(src, ids, tries = 0) {
   after(4000, async () => {
-    await loadDevices(src);
+    const [now] = await Promise.all([
+      fetchSource(src.id).catch(() => null),
+      loadDevices(src),
+    ]);
+    if (now) Object.assign(src, now);
+    if (now?.last_error) {
+      notifyError(now.last_error);
+      return;
+    }
     const open = (devices[src.id] || []).some(
       (d) => ids.has(d.id) && !d.agent_id && !d.migrate_state,
     );
@@ -902,11 +936,16 @@ function withdrawable(src) {
 async function doWithdraw(src) {
   busy[src.id] = "withdraw";
   try {
-    const { withdrawn } = await withdrawRemoval(
+    const { withdrawn, in_flight } = await withdrawRemoval(
       src.id,
       withdrawable(src).map((d) => d.id),
     );
     notifySuccess(`Removal withdrawn on ${count(withdrawn, "device")}`);
+    if (in_flight)
+      notifyWarning(
+        `The removal on ${count(in_flight, "device")} had already started and could not be withdrawn.`,
+        6000,
+      );
     await loadDevices(src);
   } catch {
     // shown by the axios boot
@@ -927,7 +966,10 @@ function stateColor(row) {
 }
 
 onMounted(load);
-onBeforeUnmount(() => timers.forEach(clearTimeout));
+onBeforeUnmount(() => {
+  unmounted = true;
+  timers.forEach(clearTimeout);
+});
 </script>
 
 <style scoped>

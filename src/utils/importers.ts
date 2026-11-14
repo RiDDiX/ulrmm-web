@@ -4,6 +4,7 @@
 // Wording for the Import page: the parts of an import, what came of it, and
 // where the removal of a device's old agent stands.
 import { NO_VALUE } from "@/utils/format";
+import { humanizeFieldKey } from "@/utils/notify";
 
 // "1 device", "2 devices"; many for nouns that do not just take an s
 export function count(n: number, one: string, many = `${one}s`): string {
@@ -112,11 +113,14 @@ export function partNotes(
     note?: string;
     unknown_permissions?: number;
     with_device_data?: number;
+    to_complete?: string[];
+    to_complete_count?: number;
   },
 ): string[] {
   const notes: string[] = [];
   const perms = part.unknown_permissions || 0;
   const own = part.with_device_data || 0;
+  const fill = part.to_complete_count || 0;
   if (key === "roles" && perms)
     notes.push(
       `${count(perms, "permission")} this installation does not have ${perms === 1 ? "is" : "are"} left out.`,
@@ -125,11 +129,19 @@ export function partNotes(
     notes.push(
       `${count(own, "device")} ${own === 1 ? "brings its" : "bring their"} own policy, patch policy, settings, checks or tasks; linking applies them where the agent here has nothing set.`,
     );
+  if (key === "policies" && fill) {
+    const names = part.to_complete || [];
+    const more = fill > names.length ? ", ..." : "";
+    notes.push(
+      `${count(fill, "policy", "policies")} imported earlier ${fill === 1 ? "is" : "are"} completed with the checks, tasks or alert template ${fill === 1 ? "it still lacks" : "they still lack"}: ${names.join(", ")}${more}`,
+    );
+  }
   if (part.note) notes.push(part.note);
   return notes;
 }
 
-// "Added 2 clients, 1 site ...; 3 devices linked to enrolled agents."
+// "Added 2 clients, 1 site ...; 1 policy completed; 3 devices linked to
+// enrolled agents."
 export function importSummary(
   result: Record<string, unknown>,
   parts: string[],
@@ -138,6 +150,10 @@ export function importSummary(
     parts.includes(p.part || "clients"),
   ).map((p) => count(Number(result[p.key]) || 0, p.one, p.noun));
   let text = `Added ${added.join(", ")}`;
+  const completed = (result.completed as Record<string, number> | undefined)
+    ?.policies;
+  if (completed)
+    text += `; ${count(completed, "policy", "policies")} completed`;
   if (parts.includes("devices"))
     text += `; ${count(Number(result.linked) || 0, "device")} linked to enrolled agents`;
   return `${text}.`;
@@ -147,14 +163,64 @@ export function withoutSiteText(n: number): string {
   return `${count(n, "device")} ${n === 1 ? "has" : "have"} no site in the source and cannot be placed.`;
 }
 
-// [{label, items}] per part that left something out, in import order
+// [{label, items, total}] per part that left something out, in import order;
+// the server sends at most 200 items per part and the full count in totals
 export function skippedByPart(
   skipped?: Record<string, Skipped[]> | null,
-): { label: string; items: Skipped[] }[] {
+  totals?: Record<string, number> | null,
+): { label: string; items: Skipped[]; total: number }[] {
   return IMPORT_PARTS.filter((p) => skipped?.[p.key]?.length).map((p) => ({
     label: p.label,
     items: skipped![p.key],
+    total: Math.max(totals?.[p.key] || 0, skipped![p.key].length),
   }));
+}
+
+export interface SourceState {
+  last_fetch?: string | null;
+  last_error?: string;
+}
+
+// a read clears last_error when it starts, so any error is this read's
+export function readOutcome(
+  beforeFetch: string | null | undefined,
+  now: SourceState | null,
+): "running" | "failed" | "done" {
+  if (!now) return "running";
+  if (now.last_error) return "failed";
+  return now.last_fetch !== beforeFetch ? "done" : "running";
+}
+
+function firstText(value: unknown): string {
+  if (Array.isArray(value)) return firstText(value[0]);
+  if (value && typeof value === "object")
+    return firstText(Object.values(value)[0]);
+  return value == null ? "" : String(value);
+}
+
+// a rejected save: errors of the given form fields go inline, the rest into
+// one message; "" when the server gave no readable text (an HTML page)
+export function saveErrors(
+  data: unknown,
+  fields: string[],
+): { fields: Record<string, string>; message: string } {
+  const inline: Record<string, string> = {};
+  if (typeof data === "string")
+    return {
+      fields: inline,
+      message: data.trimStart().startsWith("<") ? "" : data.trim(),
+    };
+  if (Array.isArray(data)) data = { non_field_errors: data };
+  const rest: string[] = [];
+  if (data && typeof data === "object")
+    for (const [k, v] of Object.entries(data)) {
+      const text = firstText(v);
+      if (!text) continue;
+      if (fields.includes(k)) inline[k] = text;
+      else if (k === "detail" || k === "non_field_errors") rest.push(text);
+      else rest.push(`${humanizeFieldKey(k)}: ${text}`);
+    }
+  return { fields: inline, message: rest.join(" ") };
 }
 
 export interface RemovalRow {
@@ -178,13 +244,16 @@ const REMOVAL_STATES: Record<string, [string, string]> = {
   not_removed: ["not removed", "negative"],
 };
 
-// remote-control repair after a removal on Windows
+// the repair of remote control after a removal: pending, ok,
+// "failed: <reason>" (tried again), "given up: <reason>" or a final reason
 export function recoveryText(recovery?: string): string {
   if (!recovery) return "";
   if (recovery === "pending")
-    return "Remote control is repaired a few minutes after the removal.";
+    return "Repair of remote control is scheduled for 5 minutes after the removal.";
   if (recovery === "ok") return "Remote control repaired.";
-  return `Remote control not repaired: ${recovery.replace(/^failed: */, "")}`;
+  if (recovery.startsWith("failed:"))
+    return `Repair of remote control failed and is tried again hourly: ${recovery.replace(/^failed: */, "")}`;
+  return `Remote control not repaired (${recovery.replace(/^given up: */, "")}); reinstall it by hand.`;
 }
 
 // where the removal of the old agent stands; fmt formats the time

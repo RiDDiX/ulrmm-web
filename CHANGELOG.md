@@ -1,5 +1,12 @@
 # Web interface changelog
 
+## 4.14.11.2026 (2026-11-14)
+
+- Import: errors when reading, saving or sending are shown instead of being lost
+- Import: the left-out lists show the full count, also where the server sends only part of the list
+- Import: reading a source again no longer hangs
+- Import: the preview and the result say which policies imported earlier are completed with the checks, tasks or alert template they still lack
+
 ## 3.14.11.2026 (2026-11-14)
 
 - Import: the parts URL actions, alert templates, policies, roles, users and reports in the preview and the import, each with the list of what is left out and why; the users part says that imported users start inactive

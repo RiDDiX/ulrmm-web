@@ -8,10 +8,12 @@ import {
   importSummary,
   partNotes,
   partsOffered,
+  readOutcome,
   recoveryText,
   removalView,
   removalAskable,
   removalWaiting,
+  saveErrors,
   skippedByPart,
   withoutSiteText,
 } from "@/utils/importers";
@@ -50,6 +52,18 @@ describe("partNotes", () => {
     expect(partNotes("devices", { with_device_data: 2 })[0]).toMatch(/^2 /);
     expect(partNotes("users", { note: "as it is" })).toEqual(["as it is"]);
   });
+
+  it("names the policies a run completes", () => {
+    expect(partNotes("policies", { to_complete_count: 0 })).toEqual([]);
+    expect(
+      partNotes("policies", { to_complete: ["A", "B"], to_complete_count: 3 }),
+    ).toEqual([
+      "3 policies imported earlier are completed with the checks, tasks or alert template they still lack: A, B, ...",
+    ]);
+    expect(
+      partNotes("policies", { to_complete: ["A"], to_complete_count: 1 })[0],
+    ).toMatch(/^1 policy imported earlier is completed .* it still lacks: A$/);
+  });
 });
 
 describe("importSummary", () => {
@@ -66,6 +80,12 @@ describe("importSummary", () => {
         "keystore",
       ]),
     ).toBe("Added 1 key store entry, 1 URL action, 1 policy.");
+    expect(
+      importSummary({ policies: 0, completed: { policies: 2 } }, ["policies"]),
+    ).toBe("Added 0 policies; 2 policies completed.");
+    expect(
+      importSummary({ policies: 1, completed: { policies: 0 } }, ["policies"]),
+    ).toBe("Added 1 policy.");
   });
 });
 
@@ -91,10 +111,84 @@ describe("skippedByPart", () => {
     expect(
       skippedByPart({ devices: [item], policies: [item], roles: [] }),
     ).toEqual([
-      { label: "Policies with their checks and tasks", items: [item] },
-      { label: "Devices", items: [item] },
+      {
+        label: "Policies with their checks and tasks",
+        items: [item],
+        total: 1,
+      },
+      { label: "Devices", items: [item], total: 1 },
     ]);
     expect(skippedByPart(undefined)).toEqual([]);
+  });
+
+  it("counts what the server left out of the list", () => {
+    const item = { name: "a", reason: "b" };
+    expect(
+      skippedByPart({ devices: [item], roles: [item] }, { devices: 350 }),
+    ).toEqual([
+      { label: "Roles", items: [item], total: 1 },
+      { label: "Devices", items: [item], total: 350 },
+    ]);
+  });
+});
+
+describe("readOutcome", () => {
+  it("waits until last_fetch moves or an error is set", () => {
+    expect(readOutcome("t1", null)).toBe("running");
+    expect(readOutcome("t1", { last_fetch: "t1", last_error: "" })).toBe(
+      "running",
+    );
+    expect(readOutcome("t1", { last_fetch: "t2", last_error: "" })).toBe(
+      "done",
+    );
+    expect(readOutcome(null, { last_fetch: "t2" })).toBe("done");
+  });
+
+  it("sees the same error as last time", () => {
+    expect(readOutcome("t1", { last_fetch: "t1", last_error: "500" })).toBe(
+      "failed",
+    );
+  });
+});
+
+describe("saveErrors", () => {
+  const fields = ["name", "url", "secrets"];
+
+  it("keeps known fields inline", () => {
+    expect(saveErrors({ name: ["taken"], url: "bad" }, fields)).toEqual({
+      fields: { name: "taken", url: "bad" },
+      message: "",
+    });
+  });
+
+  it("puts other keys into the message", () => {
+    expect(
+      saveErrors(
+        {
+          name: ["taken"],
+          verify_tls: ["must be a boolean"],
+          options: { client_id: ["required"] },
+          non_field_errors: ["unknown kind"],
+        },
+        fields,
+      ),
+    ).toEqual({
+      fields: { name: "taken" },
+      message: "Verify tls: must be a boolean Options: required unknown kind",
+    });
+  });
+
+  it("shows a detail and a text body", () => {
+    expect(saveErrors({ detail: "no permission" }, fields)).toEqual({
+      fields: {},
+      message: "no permission",
+    });
+    expect(saveErrors("Bad request", fields).message).toBe("Bad request");
+    const busy =
+      "A read, an import or a send runs for this source; try again when it is done.";
+    expect(saveErrors(busy, fields)).toEqual({ fields: {}, message: busy });
+    expect(saveErrors("<html>500</html>", fields).message).toBe("");
+    expect(saveErrors(undefined, fields)).toEqual({ fields: {}, message: "" });
   });
 });
 
@@ -124,7 +218,10 @@ describe("removalView", () => {
     expect(v).toEqual({
       label: "removed",
       color: "positive",
-      details: ["at t", "Remote control not repaired: timeout"],
+      details: [
+        "at t",
+        "Repair of remote control failed and is tried again hourly: timeout",
+      ],
     });
   });
 
@@ -145,11 +242,22 @@ describe("removalView", () => {
 describe("recoveryText", () => {
   it.each([
     ["", ""],
-    ["pending", "Remote control is repaired a few minutes after the removal."],
+    [
+      "pending",
+      "Repair of remote control is scheduled for 5 minutes after the removal.",
+    ],
     ["ok", "Remote control repaired."],
     [
+      "failed: no answer",
+      "Repair of remote control failed and is tried again hourly: no answer",
+    ],
+    [
+      "given up: never answered",
+      "Remote control not repaired (never answered); reinstall it by hand.",
+    ],
+    [
       "no agent is linked here",
-      "Remote control not repaired: no agent is linked here",
+      "Remote control not repaired (no agent is linked here); reinstall it by hand.",
     ],
   ])("%s", (value, text) => {
     expect(recoveryText(value)).toBe(text);
