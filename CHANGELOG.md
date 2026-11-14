@@ -1,5 +1,14 @@
 # Web interface changelog
 
+## 3.14.11.2026 (2026-11-14)
+
+- Import: the parts URL actions, alert templates, policies, roles, users and reports in the preview and the import, each with the list of what is left out and why; the users part says that imported users start inactive
+- Import: the devices list shows how many of their own checks or tasks could not be taken when linking
+- Import: Send installer has a switch to remove the old agent, with a warning that says when it happens; with the switch on the dialog asks for the two-factor code, as deleting an agent does
+- Import: Remove old agent asks for the same removal without an installer, for selected devices whose agent was installed another way, with the warning and the two-factor code; Withdraw removal stops removals that were not sent yet
+- Import: the devices table has an Old agent removal column with the state, the time or the reason, and on Windows the remote-control repair
+- counts in the Import texts use the singular for one ("1 device has no site")
+
 ## 2.14.11.2026 (2026-11-14)
 
 - No changes here; version kept in step with the other components

@@ -5,7 +5,7 @@
   <div>
     <SettingsPanelHeader
       title="Import"
-      text="Takes clients, sites, devices, scripts, custom fields and the key store over from another RMM, then moves its devices over by running the installer through it."
+      text="Takes clients, sites, devices, scripts, custom fields and the key store over from another RMM, from a compatible RMM server also URL actions, alert templates, policies, roles, users and reports, then moves its devices over by running the installer through it."
     >
       <q-btn
         unelevated
@@ -171,10 +171,10 @@
             </div>
             <q-list dense bordered separator>
               <q-expansion-item
-                v-for="p in partRows(src.id)"
+                v-for="p in partRows(src)"
                 :key="p.key"
                 dense
-                :hide-expand-icon="!p.new.length"
+                :hide-expand-icon="!p.new.length && !p.skipped?.length"
               >
                 <template #header>
                   <q-item-section side class="imp-check">
@@ -186,23 +186,39 @@
                       @click.stop
                     />
                   </q-item-section>
-                  <q-item-section>{{ p.label }}</q-item-section>
+                  <q-item-section>
+                    <q-item-label>{{ p.label }}</q-item-label>
+                    <q-item-label
+                      v-for="n in partNotes(p.key, p)"
+                      :key="n"
+                      caption
+                    >
+                      {{ n }}
+                    </q-item-label>
+                  </q-item-section>
                   <q-item-section side class="rmm-num">
                     {{ p.new_count }} new of {{ p.total }}
+                    <span v-if="p.skipped_count" class="text-warning">
+                      · {{ p.skipped_count }} left out
+                    </span>
                   </q-item-section>
                 </template>
                 <div v-if="p.new.length" class="q-pa-sm text-caption">
                   {{ p.new.join(", ")
                   }}<template v-if="p.new_count > p.new.length">, ...</template>
                 </div>
+                <SkippedList
+                  v-if="p.skipped?.length"
+                  :items="p.skipped"
+                  :more="p.skipped_count - p.skipped.length"
+                />
               </q-expansion-item>
             </q-list>
             <div
               v-if="plans[src.id].devices.without_site"
               class="text-caption text-warning q-mt-xs"
             >
-              {{ plans[src.id].devices.without_site }} devices have no site in
-              the source and cannot be placed.
+              {{ withoutSiteText(plans[src.id].devices.without_site) }}
             </div>
             <div
               v-if="src.kind === 'ninjaone'"
@@ -222,9 +238,26 @@
                 @click="doImport(src)"
               />
               <span v-if="done[src.id]" class="text-caption">{{
-                done[src.id]
+                done[src.id].text
               }}</span>
             </div>
+            <q-list
+              v-if="done[src.id]?.skipped.length"
+              dense
+              bordered
+              separator
+              class="q-mt-sm"
+            >
+              <q-expansion-item
+                v-for="g in done[src.id].skipped"
+                :key="g.label"
+                dense
+                :label="`${g.label}: ${g.items.length} left out`"
+                header-class="text-warning"
+              >
+                <SkippedList :items="g.items" />
+              </q-expansion-item>
+            </q-list>
           </q-card-section>
         </template>
 
@@ -255,6 +288,39 @@
                 @click="doLink(src)"
               />
               <q-btn
+                v-if="src.removes_agent"
+                outline
+                dense
+                no-caps
+                class="q-px-sm"
+                color="negative"
+                label="Remove old agent"
+                :disable="!askable(src).length || !!busy[src.id]"
+                :loading="busy[src.id] === 'remove'"
+                @click="doRemoveOld(src)"
+              >
+                <q-tooltip
+                  >Removes the old agent from the selected devices without
+                  sending an installer, for devices whose agent here was
+                  installed another way</q-tooltip
+                >
+              </q-btn>
+              <q-btn
+                v-if="src.removes_agent"
+                flat
+                dense
+                no-caps
+                label="Withdraw removal"
+                :disable="!withdrawable(src).length || !!busy[src.id]"
+                :loading="busy[src.id] === 'withdraw'"
+                @click="doWithdraw(src)"
+              >
+                <q-tooltip
+                  >Stops the removal of the old agent on the selected devices
+                  that are still waiting for it</q-tooltip
+                >
+              </q-btn>
+              <q-btn
                 unelevated
                 dense
                 no-caps
@@ -272,6 +338,15 @@
               >
                 <q-tooltip>{{ sendHint(src) }}</q-tooltip>
               </q-btn>
+            </div>
+            <div v-if="src.removes_agent" class="q-mb-sm">
+              <q-toggle
+                v-model="removeOld[src.id]"
+                label="Remove the old agent once the device is linked and online here"
+              />
+              <div class="text-caption text-warning q-ml-sm">
+                {{ removeWarning(src) }}
+              </div>
             </div>
             <q-banner
               v-if="src.kind === 'ninjaone'"
@@ -295,7 +370,11 @@
               selection="multiple"
               v-model:selected="selected[src.id]"
               :rows="devices[src.id]"
-              :columns="columns"
+              :columns="
+                src.removes_agent
+                  ? columns
+                  : columns.filter((c) => c.name !== 'removal')
+              "
               :pagination="{ rowsPerPage: 25 }"
             >
               <template #body-cell-state="props">
@@ -310,6 +389,39 @@
                   >
                     {{ props.row.migrate_error }}
                   </div>
+                  <q-btn
+                    v-if="props.row.link_skipped?.length"
+                    flat
+                    dense
+                    no-caps
+                    size="sm"
+                    color="warning"
+                    class="q-px-xs"
+                    :label="`${props.row.link_skipped.length} left out when linking`"
+                  >
+                    <q-menu>
+                      <SkippedList :items="props.row.link_skipped" />
+                    </q-menu>
+                  </q-btn>
+                </q-td>
+              </template>
+              <template #body-cell-removal="props">
+                <q-td :props="props">
+                  <q-badge
+                    v-if="props.row.removal.color"
+                    :color="props.row.removal.color"
+                    :label="props.row.removal.label"
+                  />
+                  <span v-else class="rmm-muted">{{
+                    props.row.removal.label
+                  }}</span>
+                  <div
+                    v-for="d in props.row.removal.details"
+                    :key="d"
+                    class="text-caption rmm-muted"
+                  >
+                    {{ d }}
+                  </div>
                 </q-td>
               </template>
             </q-table>
@@ -323,8 +435,10 @@
 <script setup>
 import { onBeforeUnmount, onMounted, reactive, ref } from "vue";
 import { useQuasar } from "quasar";
+import { useStore } from "vuex";
 import SettingsPanelHeader from "@/components/modals/coresettings/SettingsPanelHeader.vue";
 import SecretInput from "@/components/ui/SecretInput.vue";
+import SkippedList from "@/components/importers/SkippedList.vue";
 import {
   deleteSource,
   fetchImportedDevices,
@@ -334,14 +448,30 @@ import {
   linkDevices,
   migrateDevices,
   readSource,
+  removeOldAgent,
   runImport,
   saveSource,
+  withdrawRemoval,
 } from "@/api/importers";
+import ConfirmYesDialog from "@/components/agents/ConfirmYesDialog.vue";
+import {
+  count,
+  importSummary,
+  partNotes,
+  partsOffered,
+  removalAskable,
+  removalView,
+  removalWaiting,
+  skippedByPart,
+  withoutSiteText,
+} from "@/utils/importers";
 import { relativeTime } from "@/utils/format";
 import { notifyError, notifySuccess } from "@/utils/notify";
 import { SILENT_REQUEST_CONFIG } from "@/constants/constants";
 
 const $q = useQuasar();
+const store = useStore();
+const formatDate = (v) => store.getters.formatDate(v);
 
 const kinds = {
   upstream: {
@@ -385,16 +515,6 @@ const kindOptions = Object.entries(kinds).map(([value, k]) => ({
   label: k.label,
 }));
 
-const PARTS = [
-  { key: "clients", part: "clients", label: "Clients" },
-  { key: "sites", part: "", label: "Sites (with their clients)" },
-  { key: "custom_fields", part: "custom_fields", label: "Custom fields" },
-  { key: "scripts", part: "scripts", label: "Scripts" },
-  { key: "snippets", part: "snippets", label: "Script snippets" },
-  { key: "keystore", part: "keystore", label: "Key store" },
-  { key: "devices", part: "devices", label: "Devices" },
-];
-
 const ninjaScripts = `Windows (PowerShell):
 param([string]$Url)
 [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
@@ -435,6 +555,13 @@ const columns = [
     sortable: true,
     align: "left",
   },
+  {
+    name: "removal",
+    label: "Old agent removal",
+    field: "remove_state",
+    sortable: true,
+    align: "left",
+  },
 ];
 
 const sources = ref([]);
@@ -450,6 +577,7 @@ const parts = reactive({});
 const done = reactive({});
 const devices = reactive({});
 const selected = reactive({});
+const removeOld = reactive({});
 const timers = new Set();
 
 function after(ms, fn) {
@@ -467,6 +595,8 @@ async function load() {
     sources.value = await fetchSources();
     ready.value = true;
     for (const src of sources.value) {
+      // off unless chosen for this send: the removal cannot be undone
+      removeOld[src.id] ??= false;
       if (src.last_fetch) loadPlan(src);
       loadDevices(src);
     }
@@ -550,9 +680,9 @@ function remove(src) {
 async function loadPlan(src) {
   try {
     plans[src.id] = await fetchPlan(src.id);
-    parts[src.id] ??= PARTS.filter(
-      (p) => p.part && plans[src.id][p.key]?.new_count,
-    ).map((p) => p.part);
+    parts[src.id] ??= partsOffered(src.parts)
+      .filter((p) => p.part && plans[src.id][p.key]?.new_count)
+      .map((p) => p.part);
   } catch {
     // the error toast comes from the axios boot
   }
@@ -560,10 +690,13 @@ async function loadPlan(src) {
 
 async function loadDevices(src) {
   try {
-    devices[src.id] = await fetchImportedDevices(src.id);
-    selected[src.id] = (selected[src.id] || []).filter((s) =>
-      devices[src.id].some((d) => d.id === s.id),
-    );
+    devices[src.id] = (await fetchImportedDevices(src.id)).map((d) => ({
+      ...d,
+      removal: removalView(d, formatDate),
+    }));
+    // the fresh rows, so the buttons see the current states
+    const ids = new Set((selected[src.id] || []).map((s) => s.id));
+    selected[src.id] = devices[src.id].filter((d) => ids.has(d.id));
   } catch {
     // shown by the axios boot
   }
@@ -602,22 +735,24 @@ async function read(src) {
   after(1000, poll);
 }
 
-function partRows(id) {
-  const plan = plans[id] || {};
-  return PARTS.filter((p) => plan[p.key]).map((p) => ({
-    ...p,
-    ...plan[p.key],
-  }));
+function partRows(src) {
+  const plan = plans[src.id] || {};
+  return partsOffered(src.parts)
+    .filter((p) => plan[p.key])
+    .map((p) => ({
+      ...p,
+      ...plan[p.key],
+    }));
 }
 
 async function doImport(src) {
   busy[src.id] = "import";
   try {
     const r = await runImport(src.id, parts[src.id]);
-    done[src.id] =
-      `Added ${r.clients} clients, ${r.sites} sites, ${r.custom_fields} custom fields, ` +
-      `${r.scripts} scripts, ${r.snippets} snippets, ${r.keystore} key store entries, ` +
-      `${r.devices} devices; ${r.linked} devices linked to enrolled agents.`;
+    done[src.id] = {
+      text: importSummary(r, parts[src.id]),
+      skipped: skippedByPart(r.skipped),
+    };
     notifySuccess("Import finished");
     delete parts[src.id];
     await loadPlan(src);
@@ -632,7 +767,7 @@ async function doLink(src) {
   busy[src.id] = "link";
   try {
     const { linked } = await linkDevices(src.id);
-    notifySuccess(`${linked} devices linked`);
+    notifySuccess(`${count(linked, "device")} linked`);
     await loadDevices(src);
   } catch {
     // shown by the axios boot
@@ -652,22 +787,96 @@ function sendHint(src) {
   return `Runs the installer on the selected devices (${src.push_plats.join(", ")}) through ${src.name}. The link it uses is valid for 3 days and enrolls only that many agents.`;
 }
 
+function removeWarning(src) {
+  return (
+    `${src.name} is told to uninstall its agent from each device once the device is linked here and has checked in here since the installer was sent, or since the removal was asked for where no installer was sent from here. ` +
+    "This happens only while the device is online on both servers and both show the same machine: the same serial number, or the same public and local address. " +
+    "While a device is offline on the other server it keeps its old agent; the removal is tried again for up to 7 days and then given up. " +
+    "Until it is sent it can be withdrawn; once sent it cannot be undone. " +
+    "On Windows the old uninstaller also removes the remote-control agent; it is repaired here a few minutes later."
+  );
+}
+
+// the removal cannot be undone: asked for the way an agent delete is
+function confirmRemoval(list, title, okLabel, consequence) {
+  return $q.dialog({
+    component: ConfirmYesDialog,
+    componentProps: {
+      hostname:
+        list.length === 1 ? list[0].hostname : count(list.length, "device"),
+      actionVerb: "removal of the old agent",
+      requireTotp: true,
+      title,
+      okLabel,
+      consequence,
+    },
+  });
+}
+
 function doMigrate(src) {
   const list = sendable(src);
+  const title = `Send the installer to ${count(list.length, "device")}?`;
+  const send = async (withRemoval, code) => {
+    busy[src.id] = "migrate";
+    try {
+      const { queued, remove_requested } = await migrateDevices(
+        src.id,
+        list.map((d) => d.id),
+        withRemoval,
+        code,
+      );
+      notifySuccess(
+        withRemoval
+          ? `Sending to ${count(queued, "device")}; the old agent is removed from ${remove_requested} of them once they are online here`
+          : `Sending to ${count(queued, "device")}`,
+      );
+      removeOld[src.id] = false;
+      watchSend(src, new Set(list.map((d) => d.id)));
+    } catch {
+      // shown by the axios boot
+    }
+    busy[src.id] = "";
+  };
+  if (removeOld[src.id]) {
+    confirmRemoval(
+      list,
+      title,
+      "Send",
+      `${src.name} runs the ulrmm agent installer on them. ${removeWarning(src)}`,
+    ).onOk((code) => send(true, code));
+    return;
+  }
   $q.dialog({
-    title: `Send the installer to ${list.length} devices?`,
+    title,
     message: `${src.name} runs the ulrmm agent installer on them. The old agent stays installed; remove it once the device shows up here.`,
     cancel: true,
     ok: { label: "Send", color: "primary", flat: true },
-  }).onOk(async () => {
-    busy[src.id] = "migrate";
+  }).onOk(() => send(false));
+}
+
+function askable(src) {
+  return (selected[src.id] || []).filter(removalAskable);
+}
+
+function doRemoveOld(src) {
+  const list = askable(src);
+  confirmRemoval(
+    list,
+    `Remove the old agent from ${count(list.length, "device")}`,
+    "Remove old agent",
+    removeWarning(src),
+  ).onOk(async (code) => {
+    busy[src.id] = "remove";
     try {
-      const { queued } = await migrateDevices(
+      const { remove_requested } = await removeOldAgent(
         src.id,
         list.map((d) => d.id),
+        code,
       );
-      notifySuccess(`Sending to ${queued} devices`);
-      watchSend(src, new Set(list.map((d) => d.id)));
+      notifySuccess(
+        `Removal of the old agent asked for on ${count(remove_requested, "device")}`,
+      );
+      await loadDevices(src);
     } catch {
       // shown by the axios boot
     }
@@ -684,6 +893,25 @@ function watchSend(src, ids, tries = 0) {
     );
     if (open && tries < 90) watchSend(src, ids, tries + 1);
   });
+}
+
+function withdrawable(src) {
+  return (selected[src.id] || []).filter(removalWaiting);
+}
+
+async function doWithdraw(src) {
+  busy[src.id] = "withdraw";
+  try {
+    const { withdrawn } = await withdrawRemoval(
+      src.id,
+      withdrawable(src).map((d) => d.id),
+    );
+    notifySuccess(`Removal withdrawn on ${count(withdrawn, "device")}`);
+    await loadDevices(src);
+  } catch {
+    // shown by the axios boot
+  }
+  busy[src.id] = "";
 }
 
 function stateLabel(row) {
