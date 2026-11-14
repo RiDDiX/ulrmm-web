@@ -1,5 +1,9 @@
 # Web interface changelog
 
+## 1.14.11.2026 (2026-11-14)
+
+- No changes here; version kept in step with the other components
+
 ## 1.13.11.2026 (2026-11-13)
 
 - app update history: "Timed out" and "Not started" are shown as such instead of "Success"; the device quick panel shows app updates with their own icon, title and result
