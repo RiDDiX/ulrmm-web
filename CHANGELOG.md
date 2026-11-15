@@ -1,5 +1,9 @@
 # Web interface changelog
 
+## 1.15.11.2026 (2026-11-15)
+
+- No changes here; version kept in step with the other components
+
 ## 4.14.11.2026 (2026-11-14)
 
 - Import: errors when reading, saving or sending are shown instead of being lost
