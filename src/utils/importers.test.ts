@@ -5,6 +5,8 @@ import { describe, expect, it } from "vitest";
 import { NO_VALUE } from "@/utils/format";
 import {
   count,
+  IMPORT_FILE_MAX,
+  importFileError,
   importSummary,
   partNotes,
   partsOffered,
@@ -129,6 +131,17 @@ describe("skippedByPart", () => {
       { label: "Roles", items: [item], total: 1 },
       { label: "Devices", items: [item], total: 350 },
     ]);
+  });
+});
+
+describe("importFileError", () => {
+  it("lets a file up to 64 MB through and stops a larger one", () => {
+    expect(importFileError({ size: IMPORT_FILE_MAX })).toBe("");
+    expect(importFileError({ size: IMPORT_FILE_MAX + 1 })).toBe(
+      "The file is larger than 64 MB.",
+    );
+    expect(importFileError(null)).toBe("Choose the export file.");
+    expect(IMPORT_FILE_MAX).toBe(64 * 1024 * 1024);
   });
 });
 

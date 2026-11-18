@@ -57,38 +57,59 @@
             :error="!!errs.name"
             :error-message="errs.name"
           />
-          <q-input
-            v-model="form.url"
-            outlined
-            dense
-            label="URL"
-            :hint="kinds[form.kind].urlHint"
-            :error="!!errs.url"
-            :error-message="errs.url"
-          />
-          <q-input
-            v-for="o in kinds[form.kind].options"
-            :key="o.key"
-            v-model="form.options[o.key]"
-            outlined
-            dense
-            :label="o.label"
-            :hint="o.hint"
-          />
-          <SecretInput
-            v-for="s in kinds[form.kind].secrets"
-            :key="s.key"
-            v-model="form.secrets[s.key]"
-            v-model:clear="form.clear[s.key]"
-            :label="s.label"
-            :stored="!!form.stored?.includes(s.key)"
-            :error="errs.secrets ? true : undefined"
-            :error-message="errs.secrets"
-          />
           <q-toggle
-            v-model="form.verify_tls"
-            label="Verify the TLS certificate"
+            v-if="form.kind === 'upstream' && !form.id"
+            v-model="form.from_file"
+            label="Read from an export file (the old server can be off)"
           />
+          <div v-if="fileForm" class="text-caption rmm-muted">
+            {{
+              form.id
+                ? "Read from an export file."
+                : "The file is made with the exporter ulrmm_export.py on a machine that reaches the old server."
+            }}
+            <a
+              class="rmm-link"
+              :href="EXPORT_DOCS_URL"
+              target="_blank"
+              rel="noopener"
+              >How to make the file</a
+            >
+          </div>
+          <template v-else>
+            <q-input
+              v-model="form.url"
+              outlined
+              dense
+              label="URL"
+              :hint="kinds[form.kind].urlHint"
+              :error="!!errs.url"
+              :error-message="errs.url"
+            />
+            <q-input
+              v-for="o in kinds[form.kind].options"
+              :key="o.key"
+              v-model="form.options[o.key]"
+              outlined
+              dense
+              :label="o.label"
+              :hint="o.hint"
+            />
+            <SecretInput
+              v-for="s in kinds[form.kind].secrets"
+              :key="s.key"
+              v-model="form.secrets[s.key]"
+              v-model:clear="form.clear[s.key]"
+              :label="s.label"
+              :stored="!!form.stored?.includes(s.key)"
+              :error="errs.secrets ? true : undefined"
+              :error-message="errs.secrets"
+            />
+            <q-toggle
+              v-model="form.verify_tls"
+              label="Verify the TLS certificate"
+            />
+          </template>
         </q-card-section>
         <q-card-actions align="right">
           <q-btn flat no-caps label="Cancel" @click="form = null" />
@@ -119,11 +140,36 @@
           <div>
             <div class="text-subtitle2">{{ src.name }}</div>
             <div class="text-caption rmm-muted">
-              {{ kinds[src.kind]?.label || src.kind }} · {{ src.url }}
+              {{ kinds[src.kind]?.label || src.kind }} ·
+              {{
+                src.from_file
+                  ? src.url
+                    ? `export file of ${src.url}`
+                    : "export file"
+                  : src.url
+              }}
             </div>
           </div>
           <q-space />
           <q-btn
+            v-if="src.from_file"
+            outline
+            dense
+            no-caps
+            class="q-px-sm"
+            color="primary"
+            icon="upload_file"
+            label="Upload file"
+            :loading="busy[src.id] === 'upload'"
+            :disable="!!busy[src.id]"
+            @click="upload = { src, file: null, key: '', error: '' }"
+          >
+            <q-tooltip v-if="src.last_fetch"
+              >Upload a newer file to replace what was read</q-tooltip
+            >
+          </q-btn>
+          <q-btn
+            v-else
             outline
             dense
             no-caps
@@ -328,6 +374,7 @@
                 >
               </q-btn>
               <q-btn
+                v-if="!src.from_file"
                 unelevated
                 dense
                 no-caps
@@ -355,6 +402,18 @@
                 {{ removeWarning(src) }}
               </div>
             </div>
+            <q-banner
+              v-if="src.from_file"
+              dense
+              rounded
+              class="rmm-banner-warning q-mb-sm"
+            >
+              This source was read from a file, so there is no server to send
+              installers through. Install the ulrmm agent on each device with a
+              deployment link or by hand. A device links by host name and site
+              when its agent enrolls; use Link enrolled agents for devices that
+              enrolled earlier. Remove the old agent by hand.
+            </q-banner>
             <q-banner
               v-if="src.kind === 'ninjaone'"
               dense
@@ -436,13 +495,65 @@
         </template>
       </q-card>
     </template>
+
+    <q-dialog
+      :model-value="!!upload"
+      :persistent="!!upload && busy[upload.src.id] === 'upload'"
+      @hide="upload = null"
+    >
+      <q-card v-if="upload" style="width: 520px; max-width: 90vw">
+        <DialogHeader
+          :title="`Upload file to ${upload.src.name}`"
+          :close-disable="busy[upload.src.id] === 'upload'"
+        />
+        <q-card-section class="q-gutter-y-sm">
+          <q-file v-model="upload.file" outlined dense label="Export file">
+            <template #prepend>
+              <q-icon name="attach_file" />
+            </template>
+          </q-file>
+          <SecretInput v-model="upload.key" label="File key" />
+          <div class="text-caption rmm-muted">
+            The file holds the old server's secrets (key store values, script
+            bodies, web hook headers, user e-mail addresses), encrypted with the
+            file key. It is sent over this HTTPS connection; the installation
+            keeps only its own encrypted copy of what it read, not the file.
+            Keep the file, apart from its key, until every part you want is
+            imported; an update of ulrmm can ask for it again. Delete it after
+            that.
+          </div>
+          <div v-if="upload.error" class="text-negative" role="alert">
+            {{ upload.error }}
+          </div>
+        </q-card-section>
+        <q-card-actions align="right">
+          <q-btn
+            v-close-popup
+            flat
+            no-caps
+            label="Cancel"
+            :disable="busy[upload.src.id] === 'upload'"
+          />
+          <q-btn
+            unelevated
+            no-caps
+            color="primary"
+            label="Upload"
+            :loading="busy[upload.src.id] === 'upload'"
+            :disable="!upload.file || !upload.key || !!busy[upload.src.id]"
+            @click="doUpload"
+          />
+        </q-card-actions>
+      </q-card>
+    </q-dialog>
   </div>
 </template>
 
 <script setup>
-import { onBeforeUnmount, onMounted, reactive, ref } from "vue";
+import { computed, onBeforeUnmount, onMounted, reactive, ref } from "vue";
 import { useQuasar } from "quasar";
 import { useStore } from "vuex";
+import DialogHeader from "@/components/ui/DialogHeader.vue";
 import SettingsPanelHeader from "@/components/modals/coresettings/SettingsPanelHeader.vue";
 import SecretInput from "@/components/ui/SecretInput.vue";
 import SkippedList from "@/components/importers/SkippedList.vue";
@@ -458,11 +569,13 @@ import {
   removeOldAgent,
   runImport,
   saveSource,
+  uploadSourceFile,
   withdrawRemoval,
 } from "@/api/importers";
 import ConfirmYesDialog from "@/components/agents/ConfirmYesDialog.vue";
 import {
   count,
+  importFileError,
   importSummary,
   partNotes,
   partsOffered,
@@ -519,6 +632,9 @@ const kinds = {
     ],
   },
 };
+const EXPORT_DOCS_URL =
+  "https://ulrmm.de/importing-from-another-rmm/#importing-from-a-file";
+
 const kindOptions = Object.entries(kinds).map(([value, k]) => ({
   value,
   label: k.label,
@@ -587,6 +703,8 @@ const done = reactive({});
 const devices = reactive({});
 const selected = reactive({});
 const removeOld = reactive({});
+// {src, file, key, error} while the upload dialog is open; the key lives only here
+const upload = ref(null);
 const timers = new Set();
 let unmounted = false;
 
@@ -633,8 +751,13 @@ function edit(src) {
     secrets: {},
     clear: {},
     stored: src?.secrets_set || [],
+    from_file: !!src?.from_file,
   };
 }
+
+const fileForm = computed(
+  () => form.value?.kind === "upstream" && form.value.from_file,
+);
 
 async function save() {
   const f = form.value;
@@ -651,14 +774,16 @@ async function save() {
   try {
     await saveSource(
       f.id,
-      {
-        kind: f.kind,
-        name: f.name.trim(),
-        url: f.url.trim(),
-        verify_tls: f.verify_tls,
-        options,
-        secrets,
-      },
+      fileForm.value
+        ? { kind: f.kind, name: f.name.trim(), from_file: true }
+        : {
+            kind: f.kind,
+            name: f.name.trim(),
+            url: f.url.trim(),
+            verify_tls: f.verify_tls,
+            options,
+            secrets,
+          },
       SILENT_REQUEST_CONFIG,
     );
     notifySuccess("Source saved");
@@ -746,15 +871,38 @@ async function read(src) {
       if (outcome === "running") continue;
       Object.assign(src, now);
       if (outcome === "failed") notifyError(now.last_error);
-      else {
-        delete parts[src.id];
-        await loadPlan(src);
-      }
+      else await afterRead(src);
       return;
     }
     notifyError("Reading the source takes too long; refresh later.");
   } catch {
     // shown by the axios boot
+  } finally {
+    busy[src.id] = "";
+  }
+}
+
+async function afterRead(src) {
+  delete parts[src.id];
+  await loadPlan(src);
+}
+
+// runs inside the request; a rejected file keeps the dialog open with the reason
+async function doUpload() {
+  const u = upload.value;
+  const src = u.src;
+  u.error = importFileError(u.file);
+  if (u.error) return;
+  busy[src.id] = "upload";
+  try {
+    Object.assign(src, await uploadSourceFile(src.id, u.file, u.key));
+    upload.value = null;
+    notifySuccess("File read");
+    await afterRead(src);
+  } catch (e) {
+    u.error =
+      saveErrors(e?.response?.data, []).message ||
+      "The file could not be read.";
   } finally {
     busy[src.id] = "";
   }

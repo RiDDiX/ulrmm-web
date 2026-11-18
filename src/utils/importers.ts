@@ -191,6 +191,14 @@ export function readOutcome(
   return now.last_fetch !== beforeFetch ? "done" : "running";
 }
 
+export const IMPORT_FILE_MAX = 64 * 1024 * 1024;
+
+// checked before sending, the server refuses larger files anyway
+export function importFileError(file?: { size: number } | null): string {
+  if (!file) return "Choose the export file.";
+  return file.size > IMPORT_FILE_MAX ? "The file is larger than 64 MB." : "";
+}
+
 function firstText(value: unknown): string {
   if (Array.isArray(value)) return firstText(value[0]);
   if (value && typeof value === "object")

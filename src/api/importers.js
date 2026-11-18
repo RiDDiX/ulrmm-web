@@ -7,7 +7,7 @@ import { SILENT_REQUEST_CONFIG } from "@/constants/constants";
 const baseUrl = "/importers/sources";
 
 // [{id, kind, name, url, verify_tls, options, secrets_set, secret_names,
-// push_plats, parts, removes_agent, last_fetch, last_import, last_error}];
+// push_plats, parts, removes_agent, from_file, last_fetch, last_import, last_error}];
 // superusers only
 export async function fetchSources() {
   const { data } = await axios.get(`${baseUrl}/`, SILENT_REQUEST_CONFIG);
@@ -36,6 +36,20 @@ export async function deleteSource(id) {
 // 409 while a read or an import runs for it
 export async function readSource(id) {
   const { data } = await axios.post(`${baseUrl}/${id}/fetch/`);
+  return data;
+}
+
+// a source made with from_file: the export file and its key; answers the
+// source with last_fetch set, 400 with a plain message, 409 while busy
+export async function uploadSourceFile(id, file, key) {
+  const form = new FormData();
+  form.append("file", file);
+  form.append("key", key);
+  const { data } = await axios.post(
+    `${baseUrl}/${id}/upload/`,
+    form,
+    SILENT_REQUEST_CONFIG,
+  );
   return data;
 }
 

@@ -1,5 +1,10 @@
 # Web interface changelog
 
+## 1.18.11.2026 (2026-11-18)
+
+- Import: adding a compatible RMM server offers "Read from an export file"; the Upload file dialog takes the file and its file key
+- Import: a source read from a file shows a note instead of Send installer
+
 ## 1.15.11.2026 (2026-11-15)
 
 - No changes here; version kept in step with the other components
