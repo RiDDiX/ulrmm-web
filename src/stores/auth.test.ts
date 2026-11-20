@@ -6,6 +6,7 @@ import { nextTick } from "vue";
 import { createPinia, setActivePinia } from "pinia";
 import axios from "axios";
 import { useAuthStore } from "@/stores/auth";
+import { closeAllShared } from "@/websocket/websocket";
 
 vi.mock("axios", () => ({ default: { post: vi.fn() } }));
 vi.mock("@/sso/api", () => ({ exchangeSSOToken: vi.fn() }));
@@ -41,5 +42,33 @@ describe("checkCredentials without a TOTP key", () => {
     expect(post).toHaveBeenLastCalledWith("/accounts/users/setup_totp/", null, {
       headers: { Authorization: "Token enrol" },
     });
+  });
+});
+
+describe("logout", () => {
+  beforeEach(() => {
+    stored.clear();
+    post.mockReset();
+    vi.mocked(closeAllShared).mockReset();
+    setActivePinia(createPinia());
+  });
+
+  it("signs out locally before the server answers", async () => {
+    const auth = useAuthStore();
+    auth.remember({ token: "t", username: "u", name: "n" }, null);
+    let fail: (reason: Error) => void = () => {};
+    post.mockReturnValueOnce(new Promise((_, reject) => (fail = reject)));
+
+    const done = auth.logout();
+    expect(auth.loggedIn).toBe(false);
+    expect(closeAllShared).toHaveBeenCalledOnce();
+    expect(post).toHaveBeenCalledWith("/logout/", null, {
+      headers: { Authorization: "Token t" },
+      timeout: 5000,
+      noAuthRedirect: true,
+    });
+
+    fail(new Error("timeout"));
+    await expect(done).resolves.toBeUndefined();
   });
 });

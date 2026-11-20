@@ -1,5 +1,9 @@
 # Web interface changelog
 
+## 2.20.11.2026 (2026-11-20)
+
+- Log out: the tab is signed out and its live connections are closed at once; the server is told afterwards, with a time limit of 5 seconds
+
 ## 1.20.11.2026 (2026-11-20)
 
 - Import: the Send installer dialog names removals of the old agent that were asked for earlier and still wait for the selected devices

@@ -97,10 +97,8 @@ export const useAuthStore = defineStore("auth", {
       return isSafeNext(next) ? next : null;
     },
     async logout() {
-      // the local sign-out happens even when the server is unreachable
-      if (this.token !== null) await axios.post("/logout/").catch(() => {});
-      else if (enrolToken !== null)
-        await axios.post("/logout/", null, asEnrolee()).catch(() => {});
+      // local sign-out first: a hanging server must not keep the session
+      const token = this.token ?? enrolToken;
       enrolToken = null;
       this.$patch({
         token: null,
@@ -110,6 +108,14 @@ export const useAuthStore = defineStore("auth", {
         provider_id: null,
       });
       closeAllShared();
+      if (token === null) return;
+      await axios
+        .post("/logout/", null, {
+          headers: { Authorization: `Token ${token}` },
+          timeout: 5000,
+          noAuthRedirect: true,
+        })
+        .catch(() => {});
     },
     // false when the account already has a key
     setupTotp(): Promise<TOTPSetupResponse | false> {
