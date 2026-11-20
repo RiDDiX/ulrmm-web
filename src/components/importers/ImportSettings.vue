@@ -577,6 +577,7 @@ import {
   count,
   importFileError,
   importSummary,
+  keptAgentText,
   partNotes,
   partsOffered,
   readOutcome,
@@ -963,7 +964,7 @@ function sendHint(src) {
 function removeWarning(src) {
   return (
     `${src.name} is told to uninstall its agent from each device once the device is linked here and has checked in here since the installer was sent, or since the removal was asked for where no installer was sent from here. ` +
-    "This happens only while the device is online on both servers and both show the same machine: the same serial number, or the same public and local address. " +
+    "This happens only while the device is online on both servers and both show the same machine: the same serial number, or the same public and local address while the serial numbers do not differ. " +
     "While a device is offline on the other server it keeps its old agent; the removal is tried again for up to 7 days and then given up. " +
     "Until it is sent it can be withdrawn; once sent it cannot be undone. " +
     "The old uninstaller can also remove the remote-control agent; it is repaired here 5 minutes after the removal and, if that fails, tried again hourly for up to 7 days."
@@ -1021,7 +1022,7 @@ function doMigrate(src) {
   }
   $q.dialog({
     title,
-    message: `${src.name} runs the ulrmm agent installer on them. The old agent stays installed; remove it once the device shows up here.`,
+    message: `${src.name} runs the ulrmm agent installer on them. ${keptAgentText(list)}`,
     cancel: true,
     ok: { label: "Send", color: "primary", flat: true },
   }).onOk(() => send(false));

@@ -8,6 +8,7 @@ import {
   IMPORT_FILE_MAX,
   importFileError,
   importSummary,
+  keptAgentText,
   partNotes,
   partsOffered,
   readOutcome,
@@ -241,6 +242,21 @@ describe("removalView", () => {
   it("knows which rows still wait", () => {
     expect(removalWaiting({ remove_state: "waiting_there" })).toBe(true);
     expect(removalWaiting({ remove_state: "sending" })).toBe(false);
+  });
+
+  it("names an earlier removal in the send dialog", () => {
+    expect(keptAgentText([{ remove_state: "" }])).toBe(
+      "The old agent stays installed; remove it once the device shows up here.",
+    );
+    expect(
+      keptAgentText([
+        { remove_state: "waiting_here" },
+        { remove_state: "" },
+        { remove_state: "waiting_there" },
+      ]),
+    ).toBe(
+      "The removal of the old agent asked for earlier still waits for 2 devices and is sent once they are online here; use Withdraw removal to keep the old agent.",
+    );
   });
 
   it("asks again only where nothing waits, is sent or done", () => {

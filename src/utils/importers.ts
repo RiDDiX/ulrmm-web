@@ -291,6 +291,15 @@ export function removalWaiting(row: RemovalRow): boolean {
   );
 }
 
+// the send dialog without removal: an earlier request still holds
+export function keptAgentText(rows: RemovalRow[]): string {
+  const waiting = rows.filter(removalWaiting).length;
+  if (!waiting) {
+    return "The old agent stays installed; remove it once the device shows up here.";
+  }
+  return `The removal of the old agent asked for earlier still waits for ${count(waiting, "device")} and is sent once ${waiting === 1 ? "it is" : "they are"} online here; use Withdraw removal to keep the old agent.`;
+}
+
 // no removal waiting, being sent or done: one can be asked for
 export function removalAskable(row: RemovalRow): boolean {
   return (

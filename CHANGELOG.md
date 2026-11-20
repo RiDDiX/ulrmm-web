@@ -1,5 +1,9 @@
 # Web interface changelog
 
+## 1.20.11.2026 (2026-11-20)
+
+- Import: the Send installer dialog names removals of the old agent that were asked for earlier and still wait for the selected devices
+
 ## 1.18.11.2026 (2026-11-18)
 
 - Import: adding a compatible RMM server offers "Read from an export file"; the Upload file dialog takes the file and its file key

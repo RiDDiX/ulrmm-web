@@ -6,7 +6,7 @@ import { SILENT_REQUEST_CONFIG } from "@/constants/constants";
 
 const baseUrl = "/importers/sources";
 
-// [{id, kind, name, url, verify_tls, options, secrets_set, secret_names,
+// [{id, kind, name, url, verify_tls, options, secrets_set,
 // push_plats, parts, removes_agent, from_file, last_fetch, last_import, last_error}];
 // superusers only
 export async function fetchSources() {
