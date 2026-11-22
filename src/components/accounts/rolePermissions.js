@@ -144,6 +144,21 @@ export const ROLE_SECTIONS = [
         hint: "Create, edit, and delete device groups and tags. Tagging a device needs Edit Agents.",
       },
       {
+        key: "can_view_images",
+        label: "View System Images",
+        hint: "View backup status and verification for devices in scope.",
+      },
+      {
+        key: "can_manage_images",
+        label: "Manage System Images",
+        hint: "Set backup schedules and authorize offline capture.",
+      },
+      {
+        key: "can_restore_images",
+        label: "Restore System Images",
+        hint: "Authorize recovery of a verified image to a selected disk after two-factor verification.",
+      },
+      {
         key: "can_view_recovery_keys",
         label: "View Recovery Keys",
         hint: "See and reveal BitLocker and FileVault recovery keys, and rotate a FileVault key. Reveals need the 60-minute two-factor unlock.",

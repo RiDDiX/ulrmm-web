@@ -55,3 +55,8 @@ const EMAIL_PATTERN =
 export function isValidEmail(val: string) {
   return EMAIL_PATTERN.test(val);
 }
+
+// q-input rule; v-model.number leaves "" when a number field is cleared
+export const wholeNumberIn = (min: number, max: number) => (val: unknown) =>
+  (Number.isInteger(val) && (val as number) >= min && (val as number) <= max) ||
+  `Enter a whole number from ${min} to ${max}`;

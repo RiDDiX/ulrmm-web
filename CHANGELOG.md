@@ -1,5 +1,12 @@
 # Web interface changelog
 
+## 1.22.11.2026 (2026-11-22)
+
+- System images: new device tab under More with the native capability, the points, backup now, restore authorization with step-up and target confirmation (for Windows also target disk size and sector size), and delete
+- imaging policies: schedule with time zone, storage, compression, points to keep and network mode
+- Task assignments: Automation Manager dialog that assigns a task to several devices and policies in one save
+- device and policy Tasks tabs: each task shows its sources; delete names the devices and policies that lose the task
+
 ## 2.20.11.2026 (2026-11-20)
 
 - Log out: the tab is signed out and its live connections are closed at once; the server is told afterwards, with a time limit of 5 seconds

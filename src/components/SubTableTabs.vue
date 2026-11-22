@@ -101,6 +101,7 @@ import NotesTab from "@/components/agents/NotesTab.vue";
 import EncryptionTab from "@/components/agents/EncryptionTab.vue";
 import VulnsTab from "@/components/agents/VulnsTab.vue";
 import AutomatedTasksTab from "@/components/agents/AutomatedTasksTab.vue";
+import ImagingTab from "@/components/agents/ImagingTab.vue";
 import HistoryTab from "@/components/agents/HistoryTab.vue";
 import AuditTab from "@/components/agents/AuditTab.vue";
 import SoftwareTab from "@/components/agents/SoftwareTab.vue";
@@ -122,6 +123,7 @@ const TABS = [
   ["history", "history", "History", HistoryTab],
   ["timeline", "timeline", "Timeline", TimelineTab],
   ["notes", "sticky_note_2", "Notes", NotesTab],
+  ["images", "backup", "System images", ImagingTab],
   ["vault", "lock", "Vault", VaultTab],
   ["assets", "developer_board", "Assets", AssetsTab],
   ["encryption", "key", "Encryption", EncryptionTab],
