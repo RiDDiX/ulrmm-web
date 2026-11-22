@@ -21,7 +21,11 @@
         :title="
           task ? `Edit automated task: ${task.name}` : 'Add automated task'
         "
-        subtitle="Runs scripts or commands on a schedule, once, or when a check fails"
+        :subtitle="
+          task
+            ? 'Changes to this task apply to every device and policy that uses it.'
+            : 'Runs scripts or commands on a schedule, once, or when a check fails'
+        "
       />
       <!-- phones show the step numbers only, the labels take a third of the height -->
       <q-stepper

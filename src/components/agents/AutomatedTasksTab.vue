@@ -54,6 +54,14 @@
               trigger</q-tooltip
             >
           </q-btn>
+          <q-btn
+            dense
+            flat
+            no-caps
+            icon="link"
+            label="Assign existing task"
+            @click="assignments()"
+          />
           <q-space />
           <q-btn
             icon="refresh"
@@ -176,16 +184,20 @@
           />
 
           <q-td>
-            <q-icon
-              v-if="tr.row.policy"
-              size="1.3rem"
-              name="policy"
-              role="img"
-              class="rmm-muted"
-              :aria-label="policyTooltip(tr.row.policy)"
-            >
-              <q-tooltip>{{ policyTooltip(tr.row.policy) }}</q-tooltip>
-            </q-icon>
+            <template v-if="tr.row.assignment_sources">
+              <span v-if="tr.row.assignment_sources.direct">Direct</span>
+              <q-chip
+                v-for="p in tr.row.assignment_sources.policies"
+                :key="p.id"
+                dense
+                size="sm"
+                icon="policy"
+                >{{ p.name }}</q-chip
+              >
+            </template>
+            <span v-else>{{
+              tr.row.policy ? policyName(tr.row.policy) : "Direct"
+            }}</span>
           </q-td>
 
           <q-td>
@@ -287,6 +299,8 @@ import EmptyState from "@/components/ui/EmptyState.vue";
 import TabToolbar from "@/components/agents/TabToolbar.vue";
 import AlertFlagCell from "@/components/agents/AlertFlagCell.vue";
 import ResultStatusCell from "@/components/agents/ResultStatusCell.vue";
+import TaskAssignments from "@/components/tasks/TaskAssignments.vue";
+import { deleteTaskConfirmText } from "@/components/tasks/deleteTask";
 import TaskRowMenu from "@/components/agents/TaskRowMenu.vue";
 import { useAgentTab } from "@/components/agents/useAgentTab";
 import { denseTable } from "@/components/agents/tableProps";
@@ -308,7 +322,7 @@ const columns = [
   col("smsalert", "SMS alert", { field: "text_alert" }),
   col("emailalert", "Email alert", { field: "email_alert" }),
   col("dashboardalert", "Dashboard alert", { field: "dashboard_alert" }),
-  col("policystatus", "Policy"),
+  col("policystatus", "Sources"),
   sortableCol("collector", "Collector", "custom_field"),
   col("status", "Status"),
   sortableCol("name", "Name", "name", {
@@ -359,7 +373,10 @@ const iconHeaders = [
   },
 ];
 const textHeaders = [
-  { name: "policystatus", tip: "Set when a policy manages the task" },
+  {
+    name: "policystatus",
+    tip: "Direct and inherited assignments for this device",
+  },
   { name: "status", tip: "Result of the last run; failing tasks by severity" },
   { name: "actions" },
 ];
@@ -390,8 +407,6 @@ const $q = useQuasar();
 // policy id to name, so a locked row can name the policy that manages it
 const { policyNames, loadPolicyNames } = usePolicyNames();
 const policyName = (id) => policyNames.value[id] || "policy";
-const policyTooltip = (id) =>
-  `This task is managed by policy: ${policyName(id)}`;
 const lockedMeta = (row) => alertOverrideMeta(null, null, !!row.policy);
 const showAutomationManager = () => $q.dialog({ component: AutomationManager });
 
@@ -420,18 +435,16 @@ const {
 const hasOutput = (result) =>
   result.retcode !== null || result.stdout || result.stderr;
 
-async function editTask(task, patch) {
+function editTask(task, patch) {
   if (task.policy) return;
-  loading.value = true;
-  Object.assign(task, patch);
-  try {
-    notifySuccess(await updateTask(task.id, patch));
-  } catch (e) {
-    console.error(e);
-  } finally {
-    // reload so a rejected update puts the checkbox back
-    await getTasks();
-  }
+  confirmAndRun(
+    {
+      title: `Update task ${task.name}?`,
+      message: "This changes the task wherever it is assigned.",
+    },
+    () => updateTask(task.id, patch),
+    { reload: true },
+  );
 }
 
 function confirmAndRun(options, call, { reload = false } = {}) {
@@ -448,11 +461,15 @@ function confirmAndRun(options, call, { reload = false } = {}) {
   });
 }
 
-function deleteTask(task) {
+async function deleteTask(task) {
   if (task.policy) return;
   confirmAndRun(
     {
       title: `Delete task ${task.name}?`,
+      message: await deleteTaskConfirmText(
+        task.id,
+        task.assignment_sources?.direct !== false,
+      ),
       ok: { label: "Delete", color: "negative" },
     },
     () => removeTask(task.id),
@@ -466,11 +483,18 @@ function runNow(task) {
       "Task cannot be run when it's disabled. Enable it first.",
     );
   }
+  const agentId = selectedAgent.value;
   confirmAndRun(
     { title: "Are you sure?", message: `Run ${task.name} task` },
-    () =>
-      runTask(task.id, task.policy ? { agent_id: selectedAgent.value } : {}),
+    () => runTask(task.id, { agent_id: agentId }),
   );
+}
+
+function assignments(task) {
+  $q.dialog({
+    component: TaskAssignments,
+    componentProps: { taskId: task?.id, agentId: selectedAgent.value },
+  }).onOk(getTasks);
 }
 
 function openForm(task) {
@@ -479,7 +503,7 @@ function openForm(task) {
     componentProps: {
       task,
       parent: { agent: selectedAgent.value },
-      plat: agentPlatform.value,
+      plat: task ? undefined : agentPlatform.value,
     },
   }).onOk(getTasks);
 }
@@ -502,6 +526,7 @@ const menuHandlers = (row) => ({
   run: () => runNow(row),
   edit: () => editTaskDialog(row),
   policy: showAutomationManager,
+  assignments: () => assignments(row),
   delete: () => deleteTask(row),
 });
 

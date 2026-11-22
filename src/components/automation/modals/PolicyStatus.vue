@@ -13,6 +13,7 @@ import DialogHeader from "@/components/ui/DialogHeader.vue";
 import EmptyState from "@/components/ui/EmptyState.vue";
 
 const props = defineProps({
+  policyId: Number,
   item: { required: true, type: Object },
   type: {
     required: true,
@@ -127,6 +128,7 @@ async function load() {
   try {
     const { data } = await axios.get(
       `/automation/${props.type}s/${props.item.id}/status/`,
+      { params: { policy: props.policyId } },
     );
     rows.value = data;
   } catch {

@@ -12,11 +12,15 @@
         <q-item-label caption>Runs once now, outside its schedule</q-item-label>
       </q-item-section>
     </q-item>
+    <q-item clickable v-close-popup @click="$emit('assignments')"
+      ><q-item-section side><q-icon name="link" /></q-item-section
+      ><q-item-section>Device assignment</q-item-section></q-item
+    >
     <q-item v-if="!managed" clickable v-close-popup @click="$emit('edit')">
       <q-item-section side>
         <q-icon name="edit" />
       </q-item-section>
-      <q-item-section>Edit</q-item-section>
+      <q-item-section>Edit task definition</q-item-section>
     </q-item>
     <q-item v-else clickable v-close-popup @click="$emit('policy')">
       <q-item-section side>
@@ -49,7 +53,7 @@
 
 <script setup>
 defineProps({ managed: Boolean, policyName: String, closeItem: Boolean });
-defineEmits(["run", "edit", "policy", "delete"]);
+defineEmits(["run", "edit", "policy", "assignments", "delete"]);
 </script>
 
 <style scoped>

@@ -14,6 +14,7 @@ import DialogWrapper from "@/components/ui/DialogWrapper.vue";
 import PolicyActionsMenu from "@/components/automation/PolicyActionsMenu.vue";
 import PolicyChecksTab from "@/components/automation/PolicyChecksTab.vue";
 import PolicyAutomatedTasksTab from "./PolicyAutomatedTasksTab.vue";
+import TaskAssignments from "@/components/tasks/TaskAssignments.vue";
 import PolicyOverview from "@/components/automation/PolicyOverview.vue";
 import PolicyForm from "./modals/PolicyForm.vue";
 import PolicyExclusions from "@/components/automation/modals/PolicyExclusions.vue";
@@ -54,6 +55,8 @@ const subtab = ref("checks");
 const busy = ref(false);
 const loadError = ref("");
 const pagination = ref({ rowsPerPage: 0, sortBy: "name", descending: false });
+// the subtabs keep the selected policy id, so a new key makes them load again
+const tasksRev = ref(0);
 
 const subtabs = [
   {
@@ -308,6 +311,19 @@ onMounted(loadPolicies);
               @click="addPolicy"
             />
             <q-btn
+              label="Task assignments"
+              dense
+              flat
+              no-caps
+              icon="assignment_ind"
+              @click="
+                $q.dialog({ component: TaskAssignments }).onOk(() => {
+                  tasksRev++;
+                  loadPolicies();
+                })
+              "
+            />
+            <q-btn
               label="Policy overview"
               dense
               flat
@@ -515,6 +531,7 @@ onMounted(loadPolicies);
                 <component
                   :is="t.comp"
                   v-if="!!selected"
+                  :key="tasksRev"
                   :selectedPolicy="selected.id"
                 />
                 <EmptyState

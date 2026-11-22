@@ -18,6 +18,14 @@
         <q-btn
           dense
           flat
+          no-caps
+          label="Assign existing task"
+          icon="link"
+          @click="assignments()"
+        />
+        <q-btn
+          dense
+          flat
           @click="loadTasks"
           icon="refresh"
           aria-label="Refresh tasks"
@@ -104,7 +112,7 @@
             <q-td v-for="f in toggleCols" :key="f.field">
               <q-checkbox
                 dense
-                v-model="cell.row[f.field]"
+                :model-value="cell.row[f.field]"
                 @update:model-value="
                   (on) => patchTask(cell.row, { [f.field]: on })
                 "
@@ -180,6 +188,8 @@ import { useStore } from "vuex";
 import { useQuasar } from "quasar";
 import axios from "axios";
 import AutomatedTaskForm from "@/components/tasks/AutomatedTaskForm.vue";
+import TaskAssignments from "@/components/tasks/TaskAssignments.vue";
+import { deleteTaskConfirmText } from "@/components/tasks/deleteTask";
 import PolicyStatus from "@/components/automation/modals/PolicyStatus.vue";
 import RowActions from "@/components/ui/RowActions.vue";
 import EmptyState from "@/components/ui/EmptyState.vue";
@@ -199,7 +209,6 @@ const tableOpts = {
   rowsPerPageOptions: [0],
 };
 const deleteBtn = { label: "Delete", color: "negative" };
-
 const tasks = ref([]);
 const pagination = ref({ rowsPerPage: 0, sortBy: "name", descending: false });
 
@@ -264,30 +273,43 @@ const headerCells = {
   actions: { narrow: true, hidden: true },
 };
 
+let taskLoad = 0;
 async function loadTasks() {
+  const generation = ++taskLoad;
+  const policyId = props.selectedPolicy;
+  if (!policyId) return;
   $q.loading.show();
   try {
-    const { data } = await axios.get(
-      `/automation/policies/${props.selectedPolicy}/tasks/`,
-    );
-    tasks.value = data;
+    const { data } = await axios.get(`/automation/policies/${policyId}/tasks/`);
+    if (generation === taskLoad) tasks.value = data;
   } catch {
     // reported by the axios boot
+  } finally {
+    $q.loading.hide();
   }
-  $q.loading.hide();
 }
 
-async function patchTask(task, body) {
-  try {
-    const { data } = await axios.put(`/tasks/${task.id}/`, body);
-    $q.loading.hide();
-    notifySuccess(data);
-    loadTasks();
-  } catch {
-    $q.loading.hide();
-    // the checkbox flipped already; show what the server still has
-    loadTasks();
-  }
+function patchTask(task, body) {
+  $q.dialog({
+    title: `Update task ${task.name}?`,
+    message: "This changes the task wherever it is assigned.",
+    cancel: true,
+  }).onOk(async () => {
+    try {
+      const { data } = await axios.put(`/tasks/${task.id}/`, body);
+      notifySuccess(data);
+      loadTasks();
+    } catch {
+      // reported by the axios boot
+    }
+  });
+}
+
+function assignments(task) {
+  $q.dialog({
+    component: TaskAssignments,
+    componentProps: { taskId: task?.id, policyId: props.selectedPolicy },
+  }).onOk(loadTasks);
 }
 
 function openTaskForm(task) {
@@ -303,27 +325,34 @@ function openTaskForm(task) {
 function openStatus(task) {
   $q.dialog({
     component: PolicyStatus,
-    componentProps: { type: "task", item: task },
+    componentProps: {
+      type: "task",
+      item: task,
+      policyId: props.selectedPolicy,
+    },
   });
 }
 
 function runNow(task) {
   if (task.enabled) {
+    const policyId = props.selectedPolicy;
     $q.dialog({
       title: "Are you sure?",
       message: `Run ${task.name} task`,
       persistent: true,
       cancel: true,
-    }).onOk(() => confirmRun(task));
+    }).onOk(() => confirmRun(task, policyId));
   } else {
     notifyError("Task cannot be run when it's disabled. Enable it first.");
   }
 }
 
-async function confirmRun(task) {
+async function confirmRun(task, policyId) {
   $q.loading.show();
   try {
-    await axios.post(`/automation/tasks/${task.id}/run/`);
+    await axios.post(`/automation/tasks/${task.id}/run/`, {
+      policy: policyId,
+    });
     $q.loading.hide();
     notifySuccess("The task was initiated on all affected agents");
   } catch {
@@ -331,9 +360,10 @@ async function confirmRun(task) {
   }
 }
 
-function removeTask(task) {
+async function removeTask(task) {
   $q.dialog({
     title: `Delete task ${task.name}?`,
+    message: await deleteTaskConfirmText(task.id),
     ok: deleteBtn,
     cancel: true,
     persistent: true,
@@ -358,7 +388,18 @@ const rowMenu = [
     hint: "Starts it on every agent under the policy",
     run: runNow,
   },
-  { id: "edit", icon: "edit", label: "Edit", run: openTaskForm },
+  {
+    id: "assignments",
+    icon: "link",
+    label: "Policy assignment",
+    run: assignments,
+  },
+  {
+    id: "edit",
+    icon: "edit",
+    label: "Edit task definition",
+    run: openTaskForm,
+  },
   {
     id: "status",
     icon: "sync",
@@ -381,7 +422,10 @@ const menuFor = () => (mayRun.value ? rowMenu : rowMenu.slice(1));
 watch(
   () => props.selectedPolicy,
   (now, before) => {
-    if (now !== before) loadTasks();
+    if (now !== before) {
+      tasks.value = [];
+      loadTasks();
+    }
   },
 );
 onMounted(loadTasks);

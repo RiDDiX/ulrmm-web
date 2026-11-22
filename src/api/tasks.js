@@ -20,3 +20,15 @@ export function removeTask(id) {
 export function runTask(id, payload) {
   return tasks.post(`/${id}/run/`, payload);
 }
+
+export function fetchTaskCatalog() {
+  return tasks.get("/catalog/");
+}
+
+export function fetchTaskAssignments(id) {
+  return tasks.get(`/${id}/assignments/`);
+}
+
+export function changeTaskAssignments(id, changes) {
+  return tasks.patch(`/${id}/assignments/`, changes);
+}
