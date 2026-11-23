@@ -521,6 +521,7 @@ function deleteImage(image) {
       :active-policy="info.policy"
       :storage-location="info.storage.location"
       :storage-internal="info.storage.internal"
+      :agent-supported="info.capability.supported && !!native?.method"
       @close="policyOpen = false"
       @saved="load"
     />

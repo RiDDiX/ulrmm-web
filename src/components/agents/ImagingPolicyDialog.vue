@@ -16,6 +16,7 @@ const props = defineProps({
   activePolicy: { type: Object, default: null },
   storageLocation: { type: String, default: "" },
   storageInternal: Boolean,
+  agentSupported: Boolean,
 });
 const emit = defineEmits(["close", "saved"]);
 const $q = useQuasar();
@@ -25,7 +26,8 @@ const devicesApi = endpoint("/imaging/agents");
 const policies = ref([]);
 const devices = ref([]);
 const selectedPolicy = ref(null);
-const selectedDevices = ref([props.agentId]);
+const current = props.agentSupported ? [props.agentId] : [];
+const selectedDevices = ref([...current]);
 const name = ref("");
 const form = ref({});
 const details = ref({});
@@ -58,6 +60,14 @@ const deviceOptions = computed(() =>
     disable: members.value.includes(device.value),
   })),
 );
+// the server refuses unsupported devices, so they stay listed with their reason but are not saved
+const unsupported = (id) => {
+  const capability = details.value[id]?.capability;
+  return !!capability && !(capability.supported && capability.native?.method);
+};
+const included = computed(() =>
+  affected.value.filter((id) => !unsupported(id)),
+);
 const destination = computed(() => form.value.destination?.trim() ?? "");
 const previewReady = computed(
   () =>
@@ -65,8 +75,8 @@ const previewReady = computed(
     !checking.value &&
     !saving.value &&
     !!destination.value &&
-    affected.value.length > 0 &&
-    affected.value.every((id) => {
+    included.value.length > 0 &&
+    included.value.every((id) => {
       const result = details.value[id];
       return (
         result?.destination === destination.value &&
@@ -87,9 +97,7 @@ function selectPolicy(id) {
   name.value = policy?.name ?? "";
   form.value = { ...(policy?.config ?? props.config) };
   if (!policy && !props.storageInternal) form.value.network_mode = "internet";
-  selectedDevices.value = [
-    ...new Set([props.agentId, ...(policy?.agents ?? [])]),
-  ];
+  selectedDevices.value = [...new Set([...current, ...(policy?.agents ?? [])])];
 }
 
 onMounted(async () => {
@@ -160,7 +168,7 @@ async function save() {
       schedule_time: form.value.schedule_time || null,
     };
     delete config.next_run;
-    const payload = { name: name.value.trim(), config, agents: affected.value };
+    const payload = { name: name.value.trim(), config, agents: included.value };
     if (selectedPolicy.value === null) await policiesApi.post("/", payload);
     else await policiesApi.put(`/${selectedPolicy.value}/`, payload);
     notifySuccess("Backup policy applied");
@@ -278,6 +286,11 @@ function removePolicy() {
                   details[id]?.capability?.reason
                 }}</q-item-label>
                 <q-item-label
+                  v-if="unsupported(id) && !members.includes(id)"
+                  caption
+                  >Not included in this policy.</q-item-label
+                >
+                <q-item-label
                   v-if="details[id]?.capability?.native?.scope"
                   caption
                   >Backup scope ·
@@ -310,6 +323,24 @@ function removePolicy() {
                   WireGuard-bound connection.
                 </q-item-label>
               </template>
+            </q-item-section>
+            <q-item-section
+              v-if="unsupported(id) && !members.includes(id)"
+              side
+            >
+              <q-btn
+                flat
+                dense
+                no-caps
+                label="Remove"
+                :aria-label="`Remove ${labels[id] || id}`"
+                :disable="saving"
+                @click="
+                  selectedDevices = selectedDevices.filter(
+                    (item) => item !== id,
+                  )
+                "
+              />
             </q-item-section>
           </q-item>
         </q-list>
