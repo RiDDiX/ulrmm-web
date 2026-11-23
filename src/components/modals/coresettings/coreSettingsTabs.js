@@ -9,6 +9,7 @@ import LapsSettings from "@/components/laps/LapsSettings.vue";
 import AppUpdatesForm from "@/components/modals/coresettings/AppUpdatesForm.vue";
 import BrandingForm from "@/components/modals/coresettings/BrandingForm.vue";
 import CustomFields from "@/components/modals/coresettings/CustomFields.vue";
+import ImagingStorageForm from "@/components/modals/coresettings/ImagingStorageForm.vue";
 import KeyStoreTable from "@/components/modals/coresettings/KeyStoreTable.vue";
 import RustDeskForm from "@/components/modals/coresettings/RustDeskForm.vue";
 import URLActionsTable from "@/components/modals/coresettings/URLActionsTable.vue";
@@ -55,6 +56,13 @@ export const SETTINGS_TABS = [
     props: { type: "rest" },
   },
   { name: "retention", label: "Retention", form: true },
+  {
+    name: "imaging",
+    label: "System Images",
+    pane: ImagingStorageForm,
+    ownSave: true,
+    note: "System Images saves through its own Save button above.",
+  },
   { name: "apikeys", label: "API Keys", pane: APIKeysTable },
   { name: "sso", label: "Single Sign-On (SSO)", pane: SSOProvidersTable },
   { name: "schedules", label: "Schedules", pane: ScheduleTable },

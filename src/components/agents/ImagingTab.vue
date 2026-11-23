@@ -10,6 +10,7 @@ import { fetchAgents } from "@/api/agents";
 import { endpoint } from "@/api/http";
 import { useAgentTab } from "@/components/agents/useAgentTab";
 import { stepUpCall, serverErrors } from "@/components/vault/stepUp";
+import { fmtBytes } from "@/utils/format";
 import { notifySuccess } from "@/utils/notify";
 
 const $q = useQuasar();
@@ -328,14 +329,33 @@ function deleteImage(image) {
         />
       </div>
       <template v-if="info.capability.supported">
-        <p v-if="!info.storage.configured">
-          Configure the imaging storage directory on the ULRMM server to enable
-          capture.
+        <p v-if="!info.storage.configured && info.storage.problem">
+          {{ info.storage.problem }} Backups and checks wait until it is back.
+        </p>
+        <p v-else-if="!info.storage.configured">
+          System images are not set up on this server yet.
+          <template v-if="info.can_manage">
+            Set the folder in Global Settings > System Images, which also shows
+            the command that prepares it. Details are in the
+            <a
+              href="https://github.com/RiDDiX/ulrmm/blob/main/docs/CLIENT_IMAGING.md#server-setup"
+              target="_blank"
+              rel="noopener"
+              class="rmm-link"
+              >client imaging guide</a
+            >.
+          </template>
+        </p>
+        <p v-else-if="info.can_manage">
+          Stored on the ULRMM server in {{ info.storage.location }} ·
+          {{ fmtBytes(info.storage.free_bytes) }} free. Backups wait while less
+          than {{ fmtBytes(info.storage.reserve_bytes) }} would stay free.
         </p>
         <q-form @submit="save" class="q-gutter-sm">
           <ImagingProfileFields
             v-model="form"
             :location="info.storage.location"
+            :internal="info.storage.internal"
             :disabled="!writable || busy"
           />
           <p v-if="info.config.next_run">
@@ -343,6 +363,9 @@ function deleteImage(image) {
           </p>
           <p v-if="info.policy && dirty">
             Saving device settings removes this device from its shared policy.
+          </p>
+          <p v-else-if="writable && dirty">
+            Save device settings before requesting a backup.
           </p>
           <q-btn
             v-if="info.can_manage"
@@ -497,6 +520,7 @@ function deleteImage(image) {
       :config="form"
       :active-policy="info.policy"
       :storage-location="info.storage.location"
+      :storage-internal="info.storage.internal"
       @close="policyOpen = false"
       @saved="load"
     />

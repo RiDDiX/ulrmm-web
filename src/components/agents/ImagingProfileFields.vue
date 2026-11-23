@@ -2,15 +2,24 @@
 <!-- SPDX-License-Identifier: FSL-1.1-ALv2 -->
 
 <script setup>
+import { computed } from "vue";
 import { wholeNumberIn } from "@/utils/validation";
 
 const form = defineModel({ type: Object, required: true });
-defineProps({ disabled: Boolean, location: { type: String, default: "" } });
+const props = defineProps({
+  disabled: Boolean,
+  internal: Boolean,
+  location: { type: String, default: "" },
+});
 
-const modeChoices = [
-  { label: "ULRMM internal network only", value: "internal" },
+const modeChoices = computed(() => [
+  {
+    label: "ULRMM internal network only",
+    value: "internal",
+    disable: !props.internal,
+  },
   { label: "Internet upload allowed", value: "internet" },
-];
+]);
 </script>
 
 <template>
@@ -31,6 +40,11 @@ const modeChoices = [
       outlined
       dense
       label="Transfer network"
+      :hint="
+        internal
+          ? ''
+          : 'Internal network only needs the internal imaging listener on the server'
+      "
       :disable="disabled"
     />
     <q-select

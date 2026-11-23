@@ -15,6 +15,7 @@ const props = defineProps({
   config: { type: Object, required: true },
   activePolicy: { type: Object, default: null },
   storageLocation: { type: String, default: "" },
+  storageInternal: Boolean,
 });
 const emit = defineEmits(["close", "saved"]);
 const $q = useQuasar();
@@ -85,6 +86,7 @@ function selectPolicy(id) {
   const policy = policies.value.find((item) => item.id === id);
   name.value = policy?.name ?? "";
   form.value = { ...(policy?.config ?? props.config) };
+  if (!policy && !props.storageInternal) form.value.network_mode = "internet";
   selectedDevices.value = [
     ...new Set([props.agentId, ...(policy?.agents ?? [])]),
   ];
@@ -245,6 +247,7 @@ function removePolicy() {
         <ImagingProfileFields
           v-model="form"
           :location="storageLocation"
+          :internal="storageInternal"
           :disabled="loading || saving"
         />
         <p v-if="selectedPolicy !== null">
