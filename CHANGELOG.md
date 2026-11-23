@@ -1,5 +1,12 @@
 # Web interface changelog
 
+## 3.23.11.2026 (2026-11-23)
+
+- system images: the device tab shows the reported volumes with status and consistency; extra volumes can be ticked, system volumes are always included
+- backup policies: extra volumes as mount paths; after saving, the dialog lists devices where a path is missing or not usable
+- system images: "Check all blocks" in the restore dialog checks a verified live Linux point again
+- system images: uncompressed Linux live backups note that they also store alignment padding
+
 ## 2.23.11.2026 (2026-11-23)
 
 - backup policies: the current device is added only when it supports native backups; unsupported devices show their reason and can be removed, and the policy saves for the supported devices
