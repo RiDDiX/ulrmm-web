@@ -1,5 +1,11 @@
 # Web interface changelog
 
+## 1.23.11.2026 (2026-11-23)
+
+- Global Settings > System Images: store folder with free space and stored points, check of a new folder with the command that fixes each failed check, save with two-factor confirmation, server default, a new store for a lost disk, and a Docker note
+- System images device tab: when the server is not set up, points to Global Settings > System Images; shows where images are stored and how much space is free; says when the store is not reachable
+- imaging profiles and policies: internal-only is disabled with a hint when the server has no internal listener, new ones use internet upload
+
 ## 1.22.11.2026 (2026-11-22)
 
 - System images: new device tab under More with the native capability, the points, backup now, restore authorization with step-up and target confirmation (for Windows also target disk size and sector size), and delete
