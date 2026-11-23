@@ -264,10 +264,7 @@ async function load() {
     info.value = await api.get<Storage>("/");
     // a replacement disk at the same place, or the store on a new file system
     // id: offer the new store or the confirmation right away
-    if (
-      info.value.can_start_new ||
-      (!info.value.configured && info.value.ok)
-    ) {
+    if (info.value.can_start_new || (!info.value.configured && info.value.ok)) {
       path.value = info.value.current;
       checked.value = info.value;
     }
