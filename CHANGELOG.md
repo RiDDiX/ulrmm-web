@@ -1,5 +1,9 @@
 # Web interface changelog
 
+## 2.23.11.2026 (2026-11-23)
+
+- backup policies: the current device is added only when it supports native backups; unsupported devices show their reason and can be removed, and the policy saves for the supported devices
+
 ## 1.23.11.2026 (2026-11-23)
 
 - Global Settings > System Images: store folder with free space and stored points, check of a new folder with the command that fixes each failed check, save with two-factor confirmation, server default, a new store for a lost disk, and a Docker note
