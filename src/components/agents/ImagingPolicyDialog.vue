@@ -9,6 +9,7 @@ import { endpoint } from "@/api/http";
 import { serverErrors } from "@/components/vault/stepUp";
 import { notifySuccess } from "@/utils/notify";
 import ImagingProfileFields from "./ImagingProfileFields.vue";
+import { validSelector, volumeWarning } from "./imagingVolumes";
 
 const props = defineProps({
   agentId: { type: String, required: true },
@@ -36,6 +37,7 @@ const loading = ref(true);
 const checking = ref(true);
 const saving = ref(false);
 const message = ref("");
+const warnings = ref([]);
 let reviewRun = 0;
 
 const policyOptions = computed(() => [
@@ -92,6 +94,7 @@ const canSave = computed(
 );
 
 function selectPolicy(id) {
+  warnings.value = [];
   selectedPolicy.value = id;
   const policy = policies.value.find((item) => item.id === id);
   name.value = policy?.name ?? "";
@@ -161,6 +164,7 @@ async function save() {
   if (!canSave.value) return;
   saving.value = true;
   message.value = "";
+  warnings.value = [];
   try {
     const config = {
       ...form.value,
@@ -169,11 +173,17 @@ async function save() {
     };
     delete config.next_run;
     const payload = { name: name.value.trim(), config, agents: included.value };
-    if (selectedPolicy.value === null) await policiesApi.post("/", payload);
-    else await policiesApi.put(`/${selectedPolicy.value}/`, payload);
+    const result =
+      selectedPolicy.value === null
+        ? await policiesApi.post("/", payload)
+        : await policiesApi.put(`/${selectedPolicy.value}/`, payload);
     notifySuccess("Backup policy applied");
     emit("saved");
-    emit("close");
+    if (!result?.warnings?.length) return emit("close");
+    // stays open on the saved policy, so a second apply cannot create another
+    policies.value = await policiesApi.get("/");
+    selectPolicy(result.id);
+    warnings.value = result.warnings;
   } catch (err) {
     message.value = serverErrors(err).message;
   } finally {
@@ -258,6 +268,26 @@ function removePolicy() {
           :internal="storageInternal"
           :disabled="loading || saving"
         />
+        <q-select
+          v-model="form.volumes"
+          multiple
+          use-input
+          use-chips
+          hide-dropdown-icon
+          input-debounce="0"
+          new-value-mode="add-unique"
+          max-values="32"
+          outlined
+          dense
+          label="Extra volumes (mount paths)"
+          hint="System volumes are always included. A device without a volume at a path skips it."
+          :rules="[
+            (list) =>
+              (list ?? []).every(validSelector) ||
+              'Use absolute mount paths such as /media/data or drive letters such as D:.',
+          ]"
+          :disable="loading || saving"
+        />
         <p v-if="selectedPolicy !== null">
           Existing assignments also receive these settings.
         </p>
@@ -268,6 +298,18 @@ function removePolicy() {
           role="alert"
           >{{ message }}</q-banner
         >
+        <q-banner
+          v-if="warnings.length"
+          dense
+          class="rmm-banner-warning"
+          role="alert"
+        >
+          Policy saved. Some selected volumes are not backed up on these
+          devices:
+          <div v-for="item in warnings" :key="item.agent_id">
+            {{ volumeWarning(item, labels[item.agent_id] || item.agent_id) }}
+          </div>
+        </q-banner>
         <p v-if="checking" role="status">
           Checking backup scope and requirements…
         </p>

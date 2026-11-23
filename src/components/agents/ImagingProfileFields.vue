@@ -51,6 +51,11 @@ const modeChoices = computed(() => [
       v-model="form.compression"
       :options="['gzip', 'none']"
       label="Compression"
+      :hint="
+        form.compression === 'none'
+          ? 'Uncompressed Linux live backups also store their alignment padding.'
+          : ''
+      "
       outlined
       dense
       :disable="disabled"

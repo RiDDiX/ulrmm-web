@@ -6,6 +6,13 @@ import { computed, ref, watch } from "vue";
 import { useQuasar } from "quasar";
 import ImagingPolicyDialog from "./ImagingPolicyDialog.vue";
 import ImagingProfileFields from "./ImagingProfileFields.vue";
+import ImagingVolumes from "./ImagingVolumes.vue";
+import {
+  FILES_METHOD,
+  pointVolumes,
+  sameVolumes,
+  volumesPayload,
+} from "./imagingVolumes";
 import { fetchAgents } from "@/api/agents";
 import { endpoint } from "@/api/http";
 import { useAgentTab } from "@/components/agents/useAgentTab";
@@ -60,8 +67,10 @@ const writable = computed(
 const dirty = computed(
   () =>
     info.value &&
-    Object.keys(info.value.config).some(
-      (k) => form.value[k] !== info.value.config[k],
+    Object.keys(info.value.config).some((k) =>
+      k === "volumes"
+        ? !sameVolumes(form.value.volumes, info.value.config.volumes)
+        : form.value[k] !== info.value.config[k],
     ),
 );
 const native = computed(() => info.value?.capability.native);
@@ -69,6 +78,8 @@ const isLinuxOffline = (image) =>
   image?.native?.method === "linux-offline-disk-v1";
 const isMac = (image) => image?.native?.method === "macos-timemachine-disk-v1";
 const isWindows = (image) => image?.native?.method === "windows-wbadmin-tar-v1";
+const isFiles = (image) => image?.native?.method === FILES_METHOD;
+const needsTargetDisk = (image) => isWindows(image) || isFiles(image);
 const showLegacyPairing = computed(
   () =>
     !native.value?.method ||
@@ -77,7 +88,7 @@ const showLegacyPairing = computed(
 );
 const nativeCommand = computed(() => {
   const current = grant.value;
-  if (!current?.image?.native?.method) return "";
+  if (!current?.image?.native?.method || isFiles(current.image)) return "";
   const verb = current.mode === "restore" ? "imaging-fetch" : "imaging-capture";
   const iface =
     current.network_mode === "internal"
@@ -126,6 +137,7 @@ function save() {
   const payload = {
     ...form.value,
     schedule_time: form.value.schedule_time || null,
+    volumes: volumesPayload(native.value?.volumes, form.value.volumes),
   };
   delete payload.next_run;
   return action(
@@ -137,6 +149,14 @@ const queue = () =>
   action(
     (id) => api.post(`/${id}/capture/`, {}),
     () => notifySuccess("Backup requested"),
+  );
+const recheck = (image) =>
+  action(
+    (id) => api.post(`/${id}/images/${image.id}/recheck/`, {}),
+    () =>
+      notifySuccess(
+        "Block check requested. The point shows a new verification time when it passes.",
+      ),
   );
 async function authorize(mode, image = null) {
   const selection = { image, mode, agent: selectedAgent.value };
@@ -194,7 +214,7 @@ function issue() {
       confirmed: confirmed.value,
       target_agent_id: targetId.value,
     });
-  if (mode === "restore" && isWindows(image))
+  if (mode === "restore" && needsTargetDisk(image))
     Object.assign(body, {
       raw_size: Number(targetSize.value),
       sector_size: targetSector.value,
@@ -358,6 +378,13 @@ function deleteImage(image) {
             :internal="info.storage.internal"
             :disabled="!writable || busy"
           />
+          <ImagingVolumes
+            v-if="isFiles(info.capability)"
+            v-model="form.volumes"
+            :volumes="native.volumes ?? []"
+            :saved="info.config.volumes ?? []"
+            :disabled="!writable || busy"
+          />
           <p v-if="info.config.next_run">
             Next scheduled request: {{ formatDate(info.config.next_run) }}
           </p>
@@ -433,6 +460,21 @@ function deleteImage(image) {
             <q-item-label v-if="row.native?.scope" caption>{{
               row.native.scope
             }}</q-item-label>
+            <template v-if="isFiles(row)">
+              <q-item-label caption
+                >Volumes ·
+                {{ pointVolumes(row.native).join(", ") }}</q-item-label
+              >
+              <q-item-label v-if="row.native.missing?.length" caption
+                >Not backed up on this device ·
+                {{ row.native.missing.join(", ") }}</q-item-label
+              >
+              <q-item-label v-if="row.native.report" caption
+                >Changed while read {{ row.native.report.changed }} · vanished
+                {{ row.native.report.vanished }} · skipped
+                {{ row.native.report.skipped }}</q-item-label
+              >
+            </template>
             <q-item-label v-if="row.native?.encryption" caption>{{
               row.native.encryption
             }}</q-item-label>
@@ -563,7 +605,39 @@ function deleteImage(image) {
           label="Target device"
           class="q-mb-sm"
         />
-        <p v-if="approval.image?.native?.method && approval.mode === 'restore'">
+        <template v-if="approval.mode === 'restore' && isFiles(approval.image)">
+          <p>
+            {{ approval.image.native.recovery }} The target disk must be blank,
+            hold at least
+            {{ approval.image.native.min_target_size?.toLocaleString() }} bytes
+            and use {{ approval.image.native.sector_size }}-byte logical
+            sectors. Enter the target device UUID, the target disk ID and the
+            size and sector size that
+            <code
+              >python3 ulrmm_image_recovery.py --identify restore --disk-id
+              DISK_ID</code
+            >
+            reports for that disk.
+          </p>
+          <p>
+            The restore writes before the whole point is checked. Check all
+            blocks first to find damage before anything is written.
+          </p>
+          <q-btn
+            label="Check all blocks"
+            dense
+            flat
+            no-caps
+            class="q-mb-sm"
+            :disable="busy"
+            @click="recheck(approval.image)"
+          />
+        </template>
+        <p
+          v-else-if="
+            approval.image?.native?.method && approval.mode === 'restore'
+          "
+        >
           {{ approval.image.native.recovery }}
           The recovery disk requires
           {{ approval.image.native.size?.toLocaleString() }} bytes with
@@ -617,7 +691,7 @@ function deleteImage(image) {
           "
         />
         <template
-          v-if="approval.mode === 'restore' && isWindows(approval.image)"
+          v-if="approval.mode === 'restore' && needsTargetDisk(approval.image)"
         >
           <q-input
             v-model="targetSize"
@@ -639,7 +713,11 @@ function deleteImage(image) {
         <q-checkbox
           v-if="approval.mode === 'restore'"
           v-model="confirmed"
-          :label="`I authorize overwriting ${disk || 'the selected disk'} on ${targetId} with this image.`"
+          :label="
+            isFiles(approval.image)
+              ? `I authorize partitioning ${disk || 'the selected disk'} on ${targetId} and writing this point to it.`
+              : `I authorize overwriting ${disk || 'the selected disk'} on ${targetId} with this image.`
+          "
         />
         <p v-if="message" role="alert">{{ message }}</p>
         <q-card-actions align="right"
@@ -652,7 +730,7 @@ function deleteImage(image) {
               !uuid.trim() ||
               (approval.mode === 'restore' && !confirmed) ||
               (approval.mode === 'restore' &&
-                isWindows(approval.image) &&
+                needsTargetDisk(approval.image) &&
                 (!targetSize || !targetSector))
             "
             @click="issue"
@@ -701,11 +779,16 @@ function deleteImage(image) {
             DISK_ID --network-mode {{ grant.network_mode
             }}<template v-if="grant.network_mode === 'internal'">
               --interface wg0</template
-            ><template v-if="grant.mode === 'restore'">
+            ><template v-if="grant.mode === 'restore' && !isFiles(grant.image)">
               --staging-dir STAGING_DIRECTORY</template
             ></code
           >
           and supply the token via the prompt or standard input.
+        </p>
+        <p v-if="grant.mode === 'restore' && isFiles(grant.image)">
+          The helper asks you to type
+          <code>RESTORE {{ grant.claim }} {{ grant.disk }}</code> before it
+          writes.
         </p>
         <q-card-actions align="right"
           ><q-btn v-close-popup label="Close" flat
