@@ -1,5 +1,27 @@
 # Web interface changelog
 
+## 1.24.11.2026 (2026-11-24)
+
+- backups: new Backups page in the navigation; the Devices tab lists the backup state of every device with filters for stale, not ready, refused settings, pending, older agent and held change, and confirms or rejects held changes; the Policies tab lists the policies by level
+- backup policies: the policy dialog sets a policy for a client, site, device group, tag or assigned devices, with a priority for group and tag policies, a switch per setting for "Set at this level" and enforced settings; for assigned devices it keeps the review of scope, recovery requirements and storage encryption per device and names the settings a device sets itself, which win over the policy
+- backup settings: target and transfer, schedule kinds with event triggers, catch-up and backup or blackout windows, keep last and retention tiers, quota, hooks, battery, pause limit, bandwidth limits, priority, keep awake, SMART check and alert settings
+- device tab: renamed to Backups; each setting shows its origin and lock and can be reset to the inherited value; the tab shows the settings state, a held change with the settings it moves, the readiness checks with **Check now**, the current run with progress, log, warnings, hook results and **Cancel run** with a confirmation, the last 10 runs, the storage used and a **Protected** switch per verified point
+- device tab: **Preview retention** shows which points the retention rules keep and why
+- hooks editor: phases, timeout, abort or warn, arguments and environment entries; a changed script shows "Script changed" with **Confirm**, a deleted one only Remove; kept environment values show their name only and a newly typed value for that name replaces the kept one, hidden arguments their number
+- Global Settings > System Images: backup targets with scope, used space, quota, backups at the same time, storage encryption and state
+- notifications: Backups as a notification source
+- device tab: **Delete** on a backup point opens its dialog again; it failed with an error before
+
+### Changes in behaviour
+
+- the device's backup policy dialog no longer drops devices that are not ready; they are listed and removed by the user
+- assigning a policy no longer replaces the values set on a device; the dialog names them for each device
+- a policy is deleted in the policy list of the Backups page, not in the device dialog
+- "New policy" from a device takes the device's own settings, not its whole configuration
+- saving device settings no longer removes the device from its shared policy
+- "Request backup" with a point already open says "A backup point is already open."
+- hook output is shown only to users with Run Script on the device
+
 ## 3.23.11.2026 (2026-11-23)
 
 - system images: the device tab shows the reported volumes with status and consistency; extra volumes can be ticked, system volumes are always included
