@@ -477,6 +477,15 @@ const railLinks = computed(() => [
     },
   },
   {
+    icon: "backup",
+    label: "Backups",
+    attrs: {
+      "aria-label": "Backups",
+      to: { name: "Backups" },
+      class: { "nav-device-active": route.name === "Backups" },
+    },
+  },
+  {
     icon: "album",
     label: "Images",
     attrs: {

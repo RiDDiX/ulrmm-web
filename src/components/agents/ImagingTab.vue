@@ -2,28 +2,50 @@
 <!-- SPDX-License-Identifier: FSL-1.1-ALv2 -->
 
 <script setup>
-import { computed, ref, watch } from "vue";
+import { computed, onBeforeUnmount, ref, watch } from "vue";
 import { useQuasar } from "quasar";
-import ImagingPolicyDialog from "./ImagingPolicyDialog.vue";
-import ImagingProfileFields from "./ImagingProfileFields.vue";
-import ImagingVolumes from "./ImagingVolumes.vue";
-import {
-  FILES_METHOD,
-  pointVolumes,
-  sameVolumes,
-  volumesPayload,
-} from "./imagingVolumes";
+import { FILES_METHOD, pointVolumes } from "./imagingVolumes";
 import { fetchAgents } from "@/api/agents";
 import { endpoint } from "@/api/http";
 import { useAgentTab } from "@/components/agents/useAgentTab";
+import BackupConfigFields from "@/components/backups/BackupConfigFields.vue";
+import BackupPolicyDialog from "@/components/backups/BackupPolicyDialog.vue";
+import BackupReadiness from "@/components/backups/BackupReadiness.vue";
+import BackupRunPanel from "@/components/backups/BackupRunPanel.vue";
+import {
+  HOLD_CAUSE,
+  TRIGGERS,
+  deletePointPrompt,
+  pointTime,
+  returnFocus,
+  copy,
+  devicePayload,
+  fieldErrors,
+  fieldLabel,
+  formFromEffective,
+  hookConfirmPath,
+  deviceSaveBody,
+  needsReload,
+  pointLabel,
+  reloadState,
+  runStatus,
+  syncLabel,
+  syncState,
+  valueText,
+} from "@/components/backups/backups";
 import { stepUpCall, serverErrors } from "@/components/vault/stepUp";
 import { fmtBytes } from "@/utils/format";
-import { notifySuccess } from "@/utils/notify";
+import { notifyInfo, notifySuccess } from "@/utils/notify";
 
 const $q = useQuasar();
 const api = endpoint("/imaging/agents");
+const imaging = endpoint("/imaging");
 const info = ref(null),
   form = ref({}),
+  resets = ref([]),
+  targetRows = ref([]),
+  shownRun = ref(null),
+  assignPolicies = ref(null),
   busy = ref(false),
   message = ref("");
 const approval = ref(null),
@@ -36,21 +58,37 @@ const approval = ref(null),
 const targets = ref([]),
   targetId = ref(""),
   loadingTargets = ref(false);
-const policyOpen = ref(false);
-let actionGeneration = 0;
+let actionGeneration = 0,
+  checkTimer = null;
 const { selectedAgent, formatDate, error, errorMessage, loading, load } =
   useAgentTab({
     fetch: (id) => api.get(`/${id}/`),
     accept: (data) => {
+      // unsaved edits and pending resets survive a reload
+      const next = reloadState(
+        info.value?.effective?.fields,
+        form.value,
+        resets.value,
+        data.effective?.fields,
+      );
       info.value = data;
-      form.value = { ...data.config };
+      form.value = next.form;
+      resets.value = next.resets;
+      if (data.can_manage && !targetRows.value.length)
+        imaging
+          .get("/targets/", { silent: true })
+          .then((rows) => (targetRows.value = rows))
+          .catch(() => {});
     },
     clear: () => {
       actionGeneration += 1;
+      clearTimeout(checkTimer);
       info.value = null;
       approval.value = null;
       grant.value = null;
-      policyOpen.value = false;
+      resets.value = [];
+      shownRun.value = null;
+      assignPolicies.value = null;
       message.value = "";
       busy.value = false;
     },
@@ -64,15 +102,50 @@ const writable = computed(
     info.value.storage.configured &&
     !error.value,
 );
+const payload = computed(() =>
+  devicePayload(form.value, info.value?.effective?.fields, resets.value),
+);
 const dirty = computed(
   () =>
-    info.value &&
-    Object.keys(info.value.config).some((k) =>
-      k === "volumes"
-        ? !sameVolumes(form.value.volumes, info.value.config.volumes)
-        : form.value[k] !== info.value.config[k],
-    ),
+    !!info.value &&
+    (Object.keys(payload.value.set).length > 0 ||
+      payload.value.reset.length > 0),
 );
+// without the target list the field still names the current target
+const targetOptions = computed(() =>
+  targetRows.value.length || info.value?.config.target == null
+    ? targetRows.value
+    : [{ id: info.value.config.target, name: info.value.config.destination }],
+);
+// a background reload merges unsaved edits and keeps the tab on failure
+const reloadIdle = () => {
+  if (!busy.value && !loading.value) load({ quiet: true });
+};
+const pendingPoll = setInterval(() => {
+  if (needsReload(info.value) && !document.hidden) reloadIdle();
+}, 10_000);
+onBeforeUnmount(() => {
+  clearInterval(pendingPoll);
+  clearTimeout(checkTimer);
+});
+function checkRequested() {
+  clearTimeout(checkTimer);
+  checkTimer = setTimeout(reloadIdle, 10_000);
+}
+// an ended run stays shown with its final log while the tab reloads
+function runEnded(run) {
+  shownRun.value = run;
+  load();
+}
+const undoReset = (key) =>
+  (resets.value = resets.value.filter((item) => item !== key));
+function resetField(key) {
+  resets.value = [...new Set([...resets.value, key])];
+  form.value = {
+    ...form.value,
+    [key]: copy(info.value.effective.fields[key].value),
+  };
+}
 const native = computed(() => info.value?.capability.native);
 const isLinuxOffline = (image) =>
   image?.native?.method === "linux-offline-disk-v1";
@@ -98,21 +171,25 @@ const nativeCommand = computed(() => {
     current.mode === "restore" ? " --output NEW_ARTIFACT_PATH" : "";
   return `ulrmm-agent ${verb} --url URL --image ${current.image.id} --target "${current.target}" --disk "${current.disk}" --network-mode ${current.network_mode}${iface}${output}`;
 });
-const captureKinds = computed(() => {
-  const methods = new Set();
-  const kinds = {};
-  for (const row of (info.value?.images ?? []).slice().reverse()) {
-    const method = row.native?.method;
-    if (!method) {
-      kinds[row.id] = "Offline disk image";
-      continue;
-    }
-    const series = `${method}:${row.native.source_id}:${row.destination}`;
-    kinds[row.id] = methods.has(series) ? "Follow-up backup" : "Initial backup";
-    if (row.status === "verified") methods.add(series);
-  }
-  return kinds;
-});
+// the assigned policies this device can join, as the old device dialog did
+// the dialog unmounts on close; the focus goes back to this button
+let restoreAssign = null;
+function openAssign() {
+  restoreAssign = returnFocus();
+  return action(
+    () => imaging.get("/policies/", { silent: true }),
+    (rows) =>
+      (assignPolicies.value = rows.filter((row) => row.scope === "assigned")),
+  );
+}
+function closeAssign() {
+  assignPolicies.value = null;
+  restoreAssign?.();
+}
+// a run picked from the list shows below the running one
+const pickedRun = computed(() =>
+  shownRun.value?.id === info.value?.active_run?.id ? null : shownRun.value,
+);
 async function action(run, success) {
   if (busy.value) return;
   const id = selectedAgent.value;
@@ -128,28 +205,97 @@ async function action(run, success) {
     await load();
   } catch (err) {
     if (selectedAgent.value === id && actionGeneration === generation)
-      message.value = serverErrors(err).message;
+      message.value = fieldErrors(serverErrors(err)).join(" ");
   } finally {
     if (actionGeneration === generation) busy.value = false;
   }
 }
 function save() {
-  const payload = {
-    ...form.value,
-    schedule_time: form.value.schedule_time || null,
-    volumes: volumesPayload(native.value?.volumes, form.value.volumes),
-  };
-  delete payload.next_run;
+  const { body, stepUp } = deviceSaveBody(payload.value, native.value?.volumes);
   return action(
-    (id) => api.put(`/${id}/`, payload),
-    () => notifySuccess("Backup configuration saved"),
+    (id, current) =>
+      stepUp
+        ? stepUpCall($q, (config) =>
+            current() ? api.put(`/${id}/`, body, config) : null,
+          )
+        : api.put(`/${id}/`, body),
+    () => {
+      // saved: the reload starts from the server's values again
+      resets.value = [];
+      form.value = formFromEffective(info.value.effective?.fields);
+      notifySuccess("Backup configuration saved");
+    },
   );
 }
-const queue = () =>
+// at the device or at the policy whose pin is stale; the reload shows it
+const confirmHook = (entry) =>
   action(
-    (id) => api.post(`/${id}/capture/`, {}),
-    () => notifySuccess("Backup requested"),
+    (id, current) =>
+      stepUpCall($q, (config) =>
+        current()
+          ? imaging.post(
+              hookConfirmPath(entry, id),
+              { script_id: entry.script_id, sha256: entry.sha256 },
+              config,
+            )
+          : null,
+      ),
+    () => notifySuccess("Hook confirmed"),
   );
+const protect = (image, value) =>
+  action(
+    (id, current) => {
+      const call = (config) =>
+        current()
+          ? api.post(
+              `/${id}/images/${image.id}/protect/`,
+              { protected: value },
+              config,
+            )
+          : null;
+      // lifting the protection lets retention delete the point: step-up
+      return value ? call({ silent: true }) : stepUpCall($q, call);
+    },
+    () =>
+      notifySuccess(value ? "Point protected" : "Point no longer protected"),
+  );
+// a 409 means the change moved or was decided meanwhile: show it again;
+// confirming a change of hooks needs the step-up
+function decideHold(choice) {
+  const { id, proposed_hash } = info.value.hold;
+  return action(
+    (agent, current) =>
+      stepUpCall($q, (config) =>
+        current()
+          ? imaging
+              .post(
+                `/holds/${id}/confirm/`,
+                { action: choice, proposed_hash },
+                config,
+              )
+              .catch((e) => {
+                if (e?.response?.status === 409) load();
+                throw e;
+              })
+          : null,
+      ),
+    () =>
+      notifySuccess(
+        choice === "confirm" ? "Held change confirmed" : "Held change rejected",
+      ),
+  );
+}
+// a manual request returns the point that is already open
+const queue = () => {
+  const open = new Set(info.value.images.map((image) => image.id));
+  return action(
+    (id) => api.post(`/${id}/capture/`, {}),
+    (point) =>
+      open.has(point.id)
+        ? notifyInfo("A backup point is already open.")
+        : notifySuccess("Backup requested"),
+  );
+};
 const recheck = (image) =>
   action(
     (id) => api.post(`/${id}/images/${image.id}/recheck/`, {}),
@@ -274,8 +420,7 @@ function cancelImage(image) {
 function deleteImage(image) {
   const agent = selectedAgent.value;
   $q.dialog({
-    title: "Delete system image?",
-    message: `${formatDate(image.created_at)} · ${image.status} · ${image.id}`,
+    ...deletePointPrompt(image, formatDate),
     ok: { label: "Delete", color: "negative" },
     cancel: true,
   }).onOk(() => {
@@ -294,12 +439,12 @@ function deleteImage(image) {
 <template>
   <section class="q-pa-md">
     <div class="row items-center q-gutter-sm">
-      <h3 class="rmm-label">System images</h3>
+      <h3 class="rmm-label">Backups</h3>
       <q-btn
         flat
         dense
         icon="refresh"
-        aria-label="Refresh images"
+        aria-label="Refresh backups"
         :loading="loading"
         :disable="busy"
         @click="load"
@@ -330,22 +475,88 @@ function deleteImage(image) {
         Internal-only macOS backups wait for a verifiable WireGuard-bound
         connection.
       </p>
-      <div
-        v-if="info.can_manage && native?.method"
-        class="row items-center q-gutter-sm"
+      <div v-if="info.sync" class="q-my-sm" role="status">
+        <span
+          class="rmm-pill q-mr-xs"
+          :class="syncState(info.sync.state).cls"
+          >{{ syncState(info.sync.state).label }}</span
+        >
+        {{ syncLabel(info.sync, formatDate) }}
+        <div v-for="item in info.sync.errors" :key="item.field">
+          {{ fieldLabel(item.field) }}: {{ item.message }}
+        </div>
+      </div>
+      <q-banner
+        v-if="info.hold"
+        dense
+        rounded
+        class="rmm-banner-warning q-my-sm"
+        role="status"
       >
-        <span>{{
-          info.policy
-            ? `Backup policy · ${info.policy.name}`
-            : "Device backup settings"
-        }}</span>
+        A backup settings change waits for confirmation because
+        {{ HOLD_CAUSE[info.hold.cause] ?? info.hold.cause }} (by
+        {{ info.hold.author || "an unknown user" }},
+        {{ formatDate(info.hold.created_at) }}).
+        <q-markup-table
+          flat
+          dense
+          class="rmm-table q-mt-xs"
+          aria-label="Held changes"
+        >
+          <thead>
+            <tr>
+              <th class="text-left">Setting</th>
+              <th class="text-left">Now</th>
+              <th class="text-left">After confirming</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="change in info.hold.changes" :key="change.field">
+              <td>{{ fieldLabel(change.field) }}</td>
+              <td style="white-space: pre-line">
+                {{ valueText(change.field, change.held, targetRows) }}
+              </td>
+              <td style="white-space: pre-line">
+                {{ valueText(change.field, change.proposed, targetRows) }}
+              </td>
+            </tr>
+          </tbody>
+        </q-markup-table>
+        <template v-if="info.can_manage" #action>
+          <q-btn
+            flat
+            dense
+            no-caps
+            label="Reject"
+            :disable="busy"
+            @click="decideHold('reject')"
+          />
+          <q-btn
+            flat
+            dense
+            no-caps
+            color="primary"
+            label="Confirm"
+            :disable="busy"
+            @click="decideHold('confirm')"
+          />
+        </template>
+      </q-banner>
+      <div v-if="info.can_manage" class="row items-center q-gutter-sm q-my-xs">
+        <router-link :to="{ name: 'Backups' }" class="rmm-link"
+          >Backup policies</router-link
+        >
+        <span v-if="info.policy" class="rmm-muted"
+          >Assigned policy {{ info.policy.name }}</span
+        >
         <q-btn
+          v-if="native?.method"
           flat
           dense
           no-caps
-          label="Backup policies…"
+          label="Assign a backup policy…"
           :disable="busy"
-          @click="policyOpen = true"
+          @click="openAssign"
         />
       </div>
       <template v-if="info.capability.supported">
@@ -371,27 +582,35 @@ function deleteImage(image) {
           {{ fmtBytes(info.storage.free_bytes) }} free. Backups wait while less
           than {{ fmtBytes(info.storage.reserve_bytes) }} would stay free.
         </p>
+        <p v-for="use in info.usage ?? []" :key="use.target">
+          This device stores {{ fmtBytes(use.stored_bytes) }} on target
+          {{ use.name
+          }}<template v-if="use.quota_bytes">
+            of a {{ fmtBytes(use.quota_bytes) }} quota</template
+          >.
+        </p>
         <q-form @submit="save" class="q-gutter-sm">
-          <ImagingProfileFields
+          <BackupConfigFields
+            v-if="info.effective"
             v-model="form"
-            :location="info.storage.location"
+            mode="device"
+            :effective="info.effective"
+            :targets="targetOptions"
             :internal="info.storage.internal"
+            :volumes="isFiles(info.capability) ? (native.volumes ?? []) : null"
+            :suspended="info.hooks_suspended ?? []"
+            :can-run-scripts="info.can_run_scripts ?? false"
+            :agent-id="selectedAgent"
             :disabled="!writable || busy"
-          />
-          <ImagingVolumes
-            v-if="isFiles(info.capability)"
-            v-model="form.volumes"
-            :volumes="native.volumes ?? []"
-            :saved="info.config.volumes ?? []"
-            :disabled="!writable || busy"
+            :pending="payload"
+            @reset="resetField"
+            @undo-reset="undoReset"
+            @confirm-hook="confirmHook"
           />
           <p v-if="info.config.next_run">
             Next scheduled request: {{ formatDate(info.config.next_run) }}
           </p>
-          <p v-if="info.policy && dirty">
-            Saving device settings removes this device from its shared policy.
-          </p>
-          <p v-else-if="writable && dirty">
+          <p v-if="writable && dirty">
             Save device settings before requesting a backup.
           </p>
           <q-btn
@@ -445,12 +664,67 @@ function deleteImage(image) {
           />
         </div>
       </template>
+      <BackupReadiness
+        v-if="info.checks"
+        :agent-id="selectedAgent"
+        :checks="info.checks"
+        :ready="info.ready"
+        :not-ready-reason="info.not_ready_reason"
+        :can-manage="info.can_manage"
+        @requested="checkRequested"
+      />
+      <BackupRunPanel
+        v-for="run in [info.active_run, pickedRun].filter(Boolean)"
+        :key="run.id"
+        :agent-id="selectedAgent"
+        :run="run"
+        :can-manage="info.can_manage"
+        @ended="runEnded"
+      />
+      <q-list
+        v-if="info.runs?.length"
+        dense
+        separator
+        class="q-mt-md"
+        aria-label="Recent runs"
+      >
+        <q-item-label header>Recent runs</q-item-label>
+        <q-item v-for="run in info.runs.slice(0, 10)" :key="run.id">
+          <q-item-section>
+            <q-item-label
+              >{{ formatDate(run.created_at) }} ·
+              {{ TRIGGERS[run.trigger] ?? run.trigger }}
+              <span
+                class="rmm-pill q-ml-xs"
+                :class="runStatus(run.status).cls"
+                >{{ runStatus(run.status).label }}</span
+              ></q-item-label
+            >
+            <q-item-label v-if="run.reason" caption>{{
+              run.reason
+            }}</q-item-label>
+          </q-item-section>
+          <q-item-section side>
+            <q-btn
+              flat
+              dense
+              no-caps
+              label="Details"
+              :aria-label="`Details of the run ${formatDate(run.created_at)}`"
+              :disable="
+                run.id === info.active_run?.id || run.id === shownRun?.id
+              "
+              @click="shownRun = run"
+            />
+          </q-item-section>
+        </q-item>
+      </q-list>
       <q-list separator class="q-mt-md" aria-label="Images">
         <q-item v-for="row in info.images" :key="row.id">
           <q-item-section>
             <q-item-label
-              >{{ formatDate(row.created_at) }} · {{ row.status }} ·
-              {{ captureKinds[row.id] }}</q-item-label
+              >{{ formatDate(pointTime(row)) }} · {{ row.status }} ·
+              {{ pointLabel(row) }}</q-item-label
             >
             <q-item-label caption
               >{{ row.id }} · {{ row.destination }} ·
@@ -498,12 +772,23 @@ function deleteImage(image) {
                 · {{ row.offset?.toLocaleString() }} bytes received</template
               >
             </q-item-label>
-            <q-item-label v-if="row.verified_at" caption
+            <q-item-label
+              v-if="row.verified_at"
+              caption
+              style="overflow-wrap: anywhere"
               >Verified {{ formatDate(row.verified_at) }} · Raw SHA-256
               {{ row.raw_sha256 || row.sha256 }}</q-item-label
             >
           </q-item-section>
           <q-item-section side>
+            <q-toggle
+              v-if="info.can_manage && row.status === 'verified'"
+              :model-value="!!row.protected"
+              dense
+              label="Protected"
+              :disable="busy || !!error"
+              @update:model-value="protect(row, $event)"
+            />
             <q-btn
               v-if="info.can_restore && row.status === 'verified'"
               label="Restore…"
@@ -556,15 +841,15 @@ function deleteImage(image) {
         No images for this device.
       </p>
     </template>
-    <ImagingPolicyDialog
-      v-if="policyOpen && info"
+    <BackupPolicyDialog
+      v-if="assignPolicies && info"
       :agent-id="selectedAgent"
-      :config="form"
-      :active-policy="info.policy"
-      :storage-location="info.storage.location"
-      :storage-internal="info.storage.internal"
-      :agent-supported="info.capability.supported && !!native?.method"
-      @close="policyOpen = false"
+      :config="info.overrides ?? {}"
+      :policies="assignPolicies"
+      :policy-id="info.policy?.id ?? null"
+      :internal="info.storage.internal"
+      :targets="targetOptions"
+      @close="closeAssign"
       @saved="load"
     />
     <q-dialog

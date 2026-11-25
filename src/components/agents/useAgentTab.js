@@ -24,7 +24,10 @@ export function useAgentTab({ fetch, accept, clear, forbidden, failed }) {
     return error.value?.response?.status === 403 ? forbidden : failed;
   });
 
-  async function load() {
+  // a quiet reload keeps the shown state when it fails; a click handler's
+  // event has no quiet flag
+  async function load(options) {
+    const quiet = options?.quiet === true;
     const agentId = selectedAgent.value;
     if (!agentId) return;
     const mine = ++generation;
@@ -39,7 +42,7 @@ export function useAgentTab({ fetch, accept, clear, forbidden, failed }) {
       lastLoadedAt.value = new Date();
     } catch (e) {
       console.error(e);
-      if (stillWanted()) error.value = e;
+      if (stillWanted() && !quiet) error.value = e;
     } finally {
       if (stillWanted()) loading.value = false;
     }

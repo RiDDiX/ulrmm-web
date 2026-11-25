@@ -30,6 +30,7 @@ const routes = [
         "SecurityCenter",
         () => import("@/views/SecurityCenterView.vue"),
       ),
+      signedIn("backups", "Backups", () => import("@/views/BackupsView.vue")),
       signedIn(
         "images",
         "ImageLibrary",

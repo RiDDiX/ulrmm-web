@@ -17,6 +17,7 @@ type Crumb = { label: string; to?: ReturnType<typeof dashboardScopeRoute> };
 const PAGES: Record<string, string> = {
   Overview: "Overview",
   SecurityCenter: "Security",
+  Backups: "Backups",
   ImageLibrary: "Images",
   updates: "Updates",
 };

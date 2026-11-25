@@ -123,7 +123,7 @@ const TABS = [
   ["history", "history", "History", HistoryTab],
   ["timeline", "timeline", "Timeline", TimelineTab],
   ["notes", "sticky_note_2", "Notes", NotesTab],
-  ["images", "backup", "System images", ImagingTab],
+  ["images", "backup", "Backups", ImagingTab],
   ["vault", "lock", "Vault", VaultTab],
   ["assets", "developer_board", "Assets", AssetsTab],
   ["encryption", "key", "Encryption", EncryptionTab],

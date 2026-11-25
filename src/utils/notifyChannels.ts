@@ -139,6 +139,7 @@ export const SOURCES = [
   { value: "tamper", label: "Tamper" },
   { value: "license", label: "Licenses and warranty" },
   { value: "laps", label: "Local admin" },
+  { value: "backup", label: "Backups" },
 ];
 
 export const sourceLabel = (s: string) =>

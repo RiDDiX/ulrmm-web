@@ -198,6 +198,7 @@
         </q-input>
       </q-card-section>
     </template>
+    <BackupTargetsTable />
   </div>
 </template>
 
@@ -210,6 +211,7 @@ import { fmtBytes } from "@/utils/format";
 import { copyOutput } from "@/utils/helpers";
 import { notifyError, notifySuccess } from "@/utils/notify";
 import SettingsPanelHeader from "@/components/modals/coresettings/SettingsPanelHeader.vue";
+import BackupTargetsTable from "@/components/backups/BackupTargetsTable.vue";
 
 interface StorageCheck {
   key: string;
