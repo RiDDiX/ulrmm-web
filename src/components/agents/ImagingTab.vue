@@ -610,27 +610,30 @@ function deleteImage(image) {
           <p v-if="info.config.next_run">
             Next scheduled request: {{ formatDate(info.config.next_run) }}
           </p>
-          <p v-if="writable && dirty">
-            Save device settings before requesting a backup.
-          </p>
-          <q-btn
-            v-if="info.can_manage"
-            label="Save device settings"
-            type="submit"
-            dense
-            no-caps
-            flat
-            :disable="!writable || busy || !dirty"
-          />
-          <q-btn
-            v-if="info.can_manage"
-            label="Request backup"
-            color="primary"
-            dense
-            no-caps
-            :disable="!writable || busy || dirty"
-            @click="queue"
-          />
+          <!-- the form is long: keep the actions in view while scrolling -->
+          <div v-if="info.can_manage" class="imaging-actions">
+            <p v-if="writable && dirty">
+              Save device settings before requesting a backup.
+            </p>
+            <q-btn
+              label="Save device settings"
+              type="submit"
+              dense
+              no-caps
+              :flat="!dirty"
+              :unelevated="dirty"
+              :color="dirty ? 'primary' : undefined"
+              :disable="!writable || busy || !dirty"
+            />
+            <q-btn
+              label="Request backup"
+              color="primary"
+              dense
+              no-caps
+              :disable="!writable || busy || dirty"
+              @click="queue"
+            />
+          </div>
         </q-form>
         <div v-if="info.can_manage && showLegacyPairing" class="q-mt-md">
           <p v-if="info.pairing">
@@ -1082,3 +1085,23 @@ function deleteImage(image) {
     </q-dialog>
   </section>
 </template>
+
+<style scoped>
+.imaging-actions {
+  position: sticky;
+  bottom: 0;
+  z-index: 1;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 0;
+  border-top: 1px solid var(--rmm-border);
+  background: var(--rmm-bg);
+}
+
+.imaging-actions p {
+  flex-basis: 100%;
+  margin: 0;
+}
+</style>
